@@ -149,8 +149,7 @@ dist/
 .env
 
 # backend
-target/
-*.class
+dist/
 
 # general
 .DS_Store
