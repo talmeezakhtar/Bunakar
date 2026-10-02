@@ -1,22 +1,72 @@
 # Data schema
 
-PostgreSQL via TypeORM. Entities live under `backend/src/<module>/entities/`.
+This is the PostgreSQL schema, managed by TypeORM. The entities live in `backend/src/<module>/entities/`.
 
-## Catalog tables
+Tables are created from the entities by schema sync. That's on by default in development, and in production it needs `DB_SYNCHRONIZE=true`. Moving to migrations is on the roadmap.
 
-- **colors** (`colors` module) — `id, name, hex, group (traditional|pastel|bold)`
-- **patterns** (`patterns` module) — `id, name, category (geometric|persian_floral|medallion|tribal|contemporary), svgPath, colorSlots (jsonb string[])`
-  SVG path data uses named color slots (e.g. `primary`, `secondary`) rather than baked-in colors, so one motif is reusable across any color combination.
-- **materials** (`materials` module) — `id, name (wool|silk|jute|cotton), textureSwatchUrl`
-- **pile_types** (`materials` module) — `id, name (hand_knotted|tufted|flatweave|shag), textureSwatchUrl`
+```
+users 1──* tile_designs
+      1──* freeform_designs        (deleting a user deletes their designs)
+swatches                           (catalog, referenced by id from inside the design JSON)
+```
 
-## Users
+## `users`
 
-- **users** (`auth` module) — `id, email, passwordHash, name, role (seller|admin), createdAt`
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | PK |
+| email | varchar | unique, stored lower-case |
+| passwordHash | varchar | bcrypt, 10 rounds |
+| name | varchar | |
+| role | enum | `seller` (default) |
+| createdAt | timestamp | |
 
-## Designs
+## `swatches`
 
-- **designs** (`designs` module) — `id, sellerId (FK users), shape (rectangle|round|runner), widthFt, heightFt, fieldColorId (FK colors), fieldPatternId (FK patterns), medallionEnabled, medallionPatternId (FK patterns, nullable), medallionColorId (FK colors, nullable), medallionScale, materialId (FK materials), pileTypeId (FK pile_types), priceEstimate, createdAt, updatedAt`
-- **design_borders** (`designs` module) — one-to-many via `designId` FK, not a JSON blob: `id, designId, order, widthIn, colorId (FK colors), patternId (FK patterns)`
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | PK |
+| familyId, familyName | varchar | a style family, e.g. "Tufted Wool" |
+| colorName | varchar | |
+| swatchColor | varchar | hex average colour, also used as the fallback fill |
+| imageUrl | varchar, nullable | top-view photo of one tile |
+| categories | jsonb `string[]` | filter tags in the style browser |
 
-Price estimate is computed server-side in `backend/src/designs/pricing.ts` from area, material rate/sqft, pile-type multiplier, border count, and medallion flag — the frontend mirrors the same formula in `frontend/src/utils/pricing.ts` for a live preview, but the backend value returned on save is the source of truth.
+## `tile_designs`
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | PK |
+| userId | uuid | FK → users, `ON DELETE CASCADE` |
+| name | varchar | |
+| widthTiles, heightTiles | int | 1–200 |
+| orientation | enum | `normal`, `diagonal` |
+| rugCategory | enum | `area`, `runner`, `wall`, which room photos it previews in |
+| backgroundId | varchar | the floor shown under the rug |
+| tiles | jsonb | `{ row, col, swatchId, cutType, rotation, slot? }[]` |
+| myStyles | jsonb `string[]` | palette swatch ids |
+| overlays | jsonb | medallions and border runs placed on the tiles |
+| createdAt, updatedAt | timestamp | |
+
+Index: `(userId, updatedAt)`, which serves "my designs, newest first".
+
+## `freeform_designs`
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | PK |
+| userId | uuid | FK → users, `ON DELETE CASCADE` |
+| name | varchar | |
+| widthFt, heightFt | float | 2–30 |
+| rugCategory | enum | as above |
+| backgroundId | varchar | |
+| ground | jsonb | the rug's base surface: `{ swatchId, texture, pile, carve, carveAngle }` |
+| shapes | jsonb | polygons in feet, back to front, each with its own surface finish |
+| myStyles | jsonb `string[]` | |
+| createdAt, updatedAt | timestamp | |
+
+Index: `(userId, updatedAt)`.
+
+## Why JSON columns for the design bodies
+
+A design is always loaded and saved as a whole, never queried by individual tile, and a large rug can hold tens of thousands of pieces. One `jsonb` row per design keeps a save to a single write. The DTOs validate every element's shape and cap the array sizes.

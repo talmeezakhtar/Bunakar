@@ -1,18 +1,16 @@
 import type { CSSProperties } from 'react'
+import { COLORWAYS, PATTERN_TEMPLATES, findColorway, hashAt } from '../../data/patternTemplates'
+import TemplatePreview from './TemplatePreview'
+import FreeformPreview from './FreeformPreview'
 
-export type PatternFamily = 'blank' | 'template' | 'predesigned'
-
-type Palette = {
-  base: string
-  accent: string
-  line: string
-}
+export type PatternFamily = 'blank' | 'template' | 'predesigned' | 'freeform'
 
 type PatternThumbProps = {
   family: PatternFamily
   variant?: number
   className?: string
   style?: CSSProperties
+  preserveAspectRatio?: string
 }
 
 function BlankGrid() {
@@ -38,132 +36,7 @@ function BlankGrid() {
   )
 }
 
-const TEMPLATE_PALETTE: Palette = { base: '#131a33', accent: '#d9a441', line: '#2a3462' }
-
-function GridSwatch({ palette }: { palette: Palette }) {
-  const lines = []
-  for (let i = 1; i < 5; i++) {
-    lines.push(<line key={`v${i}`} x1={i * 20} y1="0" x2={i * 20} y2="100" stroke={palette.line} strokeWidth="2" />)
-    lines.push(<line key={`h${i}`} x1="0" y1={i * 20} x2="100" y2={i * 20} stroke={palette.line} strokeWidth="2" />)
-  }
-  return (
-    <>
-      <rect width="100" height="100" fill={palette.base} />
-      {lines}
-    </>
-  )
-}
-
-function CheckerFadeSwatch({ palette }: { palette: Palette }) {
-  const cells = []
-  const n = 4
-  const gap = 3
-  const size = 100 / n
-  const bands = [0.18, 0.45, 0.72, 1]
-  for (let row = 0; row < n; row++) {
-    for (let col = 0; col < n; col++) {
-      const band = Math.min(3, Math.floor(((row + col) / (2 * (n - 1))) * 4))
-      cells.push(
-        <rect
-          key={`${row}-${col}`}
-          x={col * size + gap / 2}
-          y={row * size + gap / 2}
-          width={size - gap}
-          height={size - gap}
-          fill={palette.accent}
-          fillOpacity={bands[band]}
-        />,
-      )
-    }
-  }
-  return (
-    <>
-      <rect width="100" height="100" fill={palette.base} />
-      {cells}
-    </>
-  )
-}
-
-function CheckerSwatch({ palette }: { palette: Palette }) {
-  const cells = []
-  const n = 4
-  const size = 100 / n
-  for (let row = 0; row < n; row++) {
-    for (let col = 0; col < n; col++) {
-      const alt = (row + col) % 2 === 0
-      cells.push(
-        <rect key={`${row}-${col}`} x={col * size} y={row * size} width={size} height={size} fill={alt ? palette.base : palette.accent} />,
-      )
-    }
-  }
-  return <>{cells}</>
-}
-
-function ChevronSwatch({ palette }: { palette: Palette }) {
-  const rows = 5
-  return (
-    <>
-      <rect width="100" height="100" fill={palette.base} />
-      {Array.from({ length: rows }).map((_, i) => (
-        <polyline
-          key={i}
-          points="0,10 12,2 24,10 36,2 48,10 60,2 72,10 84,2 96,10 100,8"
-          transform={`translate(0 ${i * 18 + 4})`}
-          fill="none"
-          stroke={i % 2 === 0 ? palette.accent : palette.line}
-          strokeWidth="4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      ))}
-    </>
-  )
-}
-
-function LightCheckSwatch({ palette }: { palette: Palette }) {
-  const cells = []
-  const n = 8
-  const size = 100 / n
-  for (let row = 0; row < n; row++) {
-    for (let col = 0; col < n; col++) {
-      const alt = (row + col) % 2 === 0
-      cells.push(
-        <rect
-          key={`${row}-${col}`}
-          x={col * size}
-          y={row * size}
-          width={size}
-          height={size}
-          fill={alt ? palette.base : palette.line}
-        />,
-      )
-    }
-  }
-  return <>{cells}</>
-}
-
-function PlaidSwatch({ palette }: { palette: Palette }) {
-  const stripes = []
-  for (let i = 0; i < 5; i++) {
-    stripes.push(<rect key={`v${i}`} x={i * 22} y="0" width="8" height="100" fill={palette.accent} opacity="0.7" />)
-    stripes.push(<rect key={`h${i}`} x="0" y={i * 22} width="100" height="8" fill={palette.accent} opacity="0.7" />)
-  }
-  return (
-    <>
-      <rect width="100" height="100" fill={palette.base} />
-      {stripes}
-    </>
-  )
-}
-
-const TEMPLATE_VARIANTS = [GridSwatch, CheckerFadeSwatch, CheckerSwatch, ChevronSwatch, LightCheckSwatch, PlaidSwatch]
-
 const JEWEL_COLORS = ['#7a2436', '#d9a441', '#173a36', '#1c2444', '#8fa8d9', '#c1567a', '#3f9c82', '#e0916b']
-
-function hashAt(seed: number, index: number) {
-  const x = Math.sin(seed * 12.9898 + index * 78.233) * 43758.5453
-  return x - Math.floor(x)
-}
 
 function MosaicSwatch({ seed }: { seed: number }) {
   const n = 4
@@ -197,12 +70,51 @@ function MosaicSwatch({ seed }: { seed: number }) {
   return <>{cells}</>
 }
 
-function PatternThumb({ family, variant = 0, className, style }: PatternThumbProps) {
-  const TemplateVariant = TEMPLATE_VARIANTS[variant % TEMPLATE_VARIANTS.length]
+/** Templates shown when no specific one is chosen yet - one from each family of the library. */
+const FEATURED_TEMPLATES = ['kilim-stepped-diamond', 'harlequin', 'deco-fan', 'houndstooth', 'pinwheel', 'beni-ourain-lattice'].map(
+  (id) => PATTERN_TEMPLATES.find((t) => t.id === id)!,
+)
+
+function PatternThumb({ family, variant = 0, className, style, preserveAspectRatio }: PatternThumbProps) {
+  if (family === 'freeform') {
+    // One of each look, cycling through the generators.
+    const looks = ['cobblestone', 'splash', 'mosaic', 'colorfield']
+    return (
+      <FreeformPreview
+        generatorId={looks[variant % looks.length]}
+        widthFt={4}
+        heightFt={4}
+        seed={variant + 3}
+        className={className}
+        style={style}
+        preserveAspectRatio={preserveAspectRatio}
+      />
+    )
+  }
+  if (family === 'template') {
+    const template = FEATURED_TEMPLATES[variant % FEATURED_TEMPLATES.length]
+    return (
+      <TemplatePreview
+        template={template}
+        colorway={findColorway(template.colorwayId) ?? COLORWAYS[0]}
+        widthTiles={4}
+        heightTiles={4}
+        className={className}
+        style={style}
+        preserveAspectRatio={preserveAspectRatio}
+      />
+    )
+  }
   return (
-    <svg viewBox="0 0 100 100" className={className} style={style} role="img" aria-hidden="true">
+    <svg
+      viewBox="0 0 100 100"
+      preserveAspectRatio={preserveAspectRatio}
+      className={className}
+      style={style}
+      role="img"
+      aria-hidden="true"
+    >
       {family === 'blank' && <BlankGrid />}
-      {family === 'template' && <TemplateVariant palette={TEMPLATE_PALETTE} />}
       {family === 'predesigned' && <MosaicSwatch seed={variant} />}
     </svg>
   )

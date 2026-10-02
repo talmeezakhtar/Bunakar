@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -50,7 +51,22 @@ export interface TileCell {
   slot?: TileSlot;
 }
 
+/** A design piece or border run laid over the tiles (see the frontend's DesignOverlay). */
+export interface TileOverlay {
+  id: string;
+  assetId: string;
+  row: number;
+  col: number;
+  widthTiles: number;
+  heightTiles: number;
+  rotation: 0 | 90 | 180 | 270;
+  thickness?: 0.5 | 1;
+  reach?: number;
+}
+
 @Entity('tile_designs')
+// Serves "my designs, newest first" - every list query filters by owner and sorts by date.
+@Index(['userId', 'updatedAt'])
 export class TileDesign {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -71,10 +87,18 @@ export class TileDesign {
   @Column('int')
   heightTiles: number;
 
-  @Column({ type: 'enum', enum: TileDesignOrientation, default: TileDesignOrientation.NORMAL })
+  @Column({
+    type: 'enum',
+    enum: TileDesignOrientation,
+    default: TileDesignOrientation.NORMAL,
+  })
   orientation: TileDesignOrientation;
 
-  @Column({ type: 'enum', enum: TileRugCategory, default: TileRugCategory.AREA })
+  @Column({
+    type: 'enum',
+    enum: TileRugCategory,
+    default: TileRugCategory.AREA,
+  })
   rugCategory: TileRugCategory;
 
   @Column()
@@ -85,6 +109,9 @@ export class TileDesign {
 
   @Column({ type: 'jsonb', default: () => "'[]'" })
   myStyles: string[];
+
+  @Column({ type: 'jsonb', default: () => "'[]'" })
+  overlays: TileOverlay[];
 
   @CreateDateColumn()
   createdAt: Date;

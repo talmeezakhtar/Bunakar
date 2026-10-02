@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Plus, Minus, TrashSimple, X } from '@phosphor-icons/react'
 import type { Swatch } from '../../types/swatch'
+import { swatchBackground } from '../../types/swatch'
 import type { BackgroundId, CutType, Rotation, Slot, TileDesignState } from '../../types/tileDesign'
 import { CUT_TYPES, tileKey } from '../../types/tileDesign'
 import CanvasToolbar from './CanvasToolbar'
 import TileGridSvg from './TileGridSvg'
-import type { SelectedPiece } from './TileGridSvg'
+import type { DesignTool, NewOverlay, SelectedPiece } from './TileGridSvg'
+import { findDesignAsset } from '../../data/designAssets'
 import lightWoodImg from '../../assets/floors/light-wood.jpg'
 import darkWoodImg from '../../assets/floors/dark-wood.jpg'
 import concreteImg from '../../assets/floors/concrete.jpg'
@@ -57,6 +59,12 @@ type TileCanvasProps = {
   onReplaceSelected: () => void
   onDeleteSelected: () => void
   onDeselectPiece: () => void
+  designTool: DesignTool | null
+  selectedOverlayId: string | null
+  onSelectOverlay: (id: string | null) => void
+  onPlaceOverlay: (overlay: NewOverlay) => void
+  onReplaceOverlay: () => void
+  onRemoveOverlay: () => void
 }
 
 function TileCanvas({
@@ -86,6 +94,12 @@ function TileCanvas({
   onReplaceSelected,
   onDeleteSelected,
   onDeselectPiece,
+  designTool,
+  selectedOverlayId,
+  onSelectOverlay,
+  onPlaceOverlay,
+  onReplaceOverlay,
+  onRemoveOverlay,
 }: TileCanvasProps) {
   const [zoom, setZoom] = useState(1)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -121,6 +135,12 @@ function TileCanvas({
     ? (CUT_TYPES.find((c) => c.id === selectedPieceCell.cutType)?.label ?? selectedPieceCell.cutType)
     : ''
 
+  const selectedOverlay = selectedOverlayId ? state.overlays.find((o) => o.id === selectedOverlayId) : undefined
+  const selectedDesign = findDesignAsset(selectedOverlay?.assetId)
+  const replacement = findDesignAsset(designTool?.assetId)
+  const canReplaceOverlay =
+    !!replacement && !!selectedDesign && replacement.kind === selectedDesign.kind && replacement.id !== selectedDesign.id
+
   return (
     <div ref={containerRef} className="flex flex-1 flex-col overflow-hidden rounded-lg border border-night-700 bg-night-900">
       <CanvasToolbar
@@ -145,7 +165,7 @@ function TileCanvas({
           <div className="flex items-center gap-2 text-sm text-sand-200">
             <span
               className="h-4 w-4 shrink-0 rounded-sm border border-black/20"
-              style={{ backgroundColor: selectedSwatch?.swatchColor ?? '#999' }}
+              style={swatchBackground(selectedSwatch)}
             />
             Selected: {selectedSwatch?.colorName ?? 'Unknown'} &middot; {selectedCutLabel}
           </div>
@@ -178,6 +198,41 @@ function TileCanvas({
         </div>
       )}
 
+      {selectedOverlay && selectedDesign && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-night-700 bg-night-800 px-3 py-2">
+          <div className="flex items-center gap-2 text-sm text-sand-200">
+            <img src={selectedDesign.url} alt="" className="h-5 w-5 shrink-0 object-contain" />
+            Selected: {selectedDesign.name} &middot; {selectedOverlay.widthTiles} × {selectedOverlay.heightTiles} tiles
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onReplaceOverlay}
+              disabled={!canReplaceOverlay}
+              title={canReplaceOverlay ? `Replace with ${replacement!.name}` : `Pick another ${selectedDesign.kind === 'border' ? 'border' : 'design piece'} first`}
+              className="rounded-full border border-gold-500/60 bg-transparent px-3 py-1 text-xs font-semibold tracking-wide text-gold-400 transition-colors hover:border-gold-400 hover:bg-gold-500 hover:text-night-950 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gold-400"
+            >
+              Replace
+            </button>
+            <button
+              type="button"
+              onClick={onRemoveOverlay}
+              className="inline-flex items-center gap-1 rounded-full border border-red-500/50 px-3 py-1 text-xs font-semibold tracking-wide text-red-400 transition-colors hover:bg-red-500/10"
+            >
+              <TrashSimple size={13} /> Remove
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectOverlay(null)}
+              aria-label="Cancel selection"
+              className="rounded-full bg-transparent p-1 text-sand-400 transition-colors hover:text-sand-100"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div
         className="flex flex-1 items-center justify-center gap-2 overflow-auto p-6"
         style={
@@ -193,7 +248,7 @@ function TileCanvas({
               onClick={onInsertRowTop}
               disabled={state.heightTiles >= MAX_TILES_PER_SIDE}
               aria-label="Add row"
-              className="rounded-md border border-night-600 bg-night-800 p-1 text-sand-300 shadow transition-colors hover:bg-night-700 disabled:cursor-not-allowed disabled:opacity-30"
+              className="inline-flex items-center justify-center rounded-md border border-night-600 bg-night-800 p-1 text-sand-300 pointer-coarse:min-h-11 pointer-coarse:min-w-11 shadow transition-colors hover:bg-night-700 disabled:cursor-not-allowed disabled:opacity-30"
             >
               <Plus size={14} />
             </button>
@@ -202,7 +257,7 @@ function TileCanvas({
               onClick={onRemoveRowTop}
               disabled={state.heightTiles <= 1}
               aria-label="Remove row"
-              className="rounded-md border border-night-600 bg-night-800 p-1 text-sand-300 shadow transition-colors hover:bg-night-700 disabled:cursor-not-allowed disabled:opacity-30"
+              className="inline-flex items-center justify-center rounded-md border border-night-600 bg-night-800 p-1 text-sand-300 pointer-coarse:min-h-11 pointer-coarse:min-w-11 shadow transition-colors hover:bg-night-700 disabled:cursor-not-allowed disabled:opacity-30"
             >
               <Minus size={14} />
             </button>
@@ -217,7 +272,7 @@ function TileCanvas({
                 onClick={onInsertColLeft}
                 disabled={state.widthTiles >= MAX_TILES_PER_SIDE}
                 aria-label="Add column"
-                className="rounded-md border border-night-600 bg-night-800 p-1 text-sand-300 shadow transition-colors hover:bg-night-700 disabled:cursor-not-allowed disabled:opacity-30"
+                className="inline-flex items-center justify-center rounded-md border border-night-600 bg-night-800 p-1 text-sand-300 pointer-coarse:min-h-11 pointer-coarse:min-w-11 shadow transition-colors hover:bg-night-700 disabled:cursor-not-allowed disabled:opacity-30"
               >
                 <Plus size={14} />
               </button>
@@ -226,7 +281,7 @@ function TileCanvas({
                 onClick={onRemoveColLeft}
                 disabled={state.widthTiles <= 1}
                 aria-label="Remove column"
-                className="rounded-md border border-night-600 bg-night-800 p-1 text-sand-300 shadow transition-colors hover:bg-night-700 disabled:cursor-not-allowed disabled:opacity-30"
+                className="inline-flex items-center justify-center rounded-md border border-night-600 bg-night-800 p-1 text-sand-300 pointer-coarse:min-h-11 pointer-coarse:min-w-11 shadow transition-colors hover:bg-night-700 disabled:cursor-not-allowed disabled:opacity-30"
               >
                 <Minus size={14} />
               </button>
@@ -255,6 +310,10 @@ function TileCanvas({
               selectedPiece={selectedPiece}
               onSelectPiece={onSelectPiece}
               onDeselectPiece={onDeselectPiece}
+              designTool={designTool}
+              selectedOverlayId={selectedOverlayId}
+              onSelectOverlay={onSelectOverlay}
+              onPlaceOverlay={onPlaceOverlay}
             />
           </div>
         </div>

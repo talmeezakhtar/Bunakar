@@ -1,11 +1,14 @@
 import { useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
-import lampImg from '../../assets/lamp-big.png'
-import genieImg from '../../assets/genie-wave.png'
+import { motion, useInView, useReducedMotion } from 'motion/react'
+import lampImg from '../../assets/lamp-big.webp'
+import genieImg from '../../assets/genie-wave.webp'
+import LampSmoke from './LampSmoke'
 import LampSparkles from './LampSparkles'
 import DesignOption from './DesignOption'
 import RugSetupModal from './RugSetupModal'
+import { useAuth } from '../../hooks/useAuth'
 import PatternThumb from './PatternThumb'
 import type { PatternFamily } from './PatternThumb'
 
@@ -65,23 +68,56 @@ const designs: {
     description: 'Choose one of our most loved rug design templates and make it your own.',
     visual: <ThumbGrid family="predesigned" />,
   },
+  {
+    eyebrow: 'Start from a',
+    title: 'Freeform Rug',
+    wishLabel: 'Wish Four',
+    family: 'freeform',
+    description: 'Hand-tufted in one piece: flowing shapes, carved grooves and plush pile in any colour.',
+    visual: <ThumbGrid family="freeform" />,
+  },
 ]
 
 const RUB_REVERSALS_NEEDED = 5
 const RUB_MOVE_THRESHOLD = 4
 
+/** Reveal choreography, in seconds after the lamp is opened: the lamp settles, smoke leaves the
+ * spout (LampSmoke, ~0.2s), the genie condenses out of it, sparkles flash as he forms
+ * (LampSparkles), then the three wishes arrive (DesignOption, from ~0.95s). */
+const REVEAL_TIMING = { genie: 0.45 }
+
+/** Rubbing needs a hovering mouse; touch and pen visitors get told to tap instead. */
+const canRub = typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches
+
 function CreateDesignSection() {
-  const [revealed, setRevealed] = useState(false)
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  // Back from logging in to start a design: the lamp is already open and that design's setup resumes.
+  const resumeDesign = user ? (location.state as { startDesign?: number } | null)?.startDesign : undefined
+  const [revealed, setRevealed] = useState(resumeDesign !== undefined)
   const [rubbing, setRubbing] = useState(false)
-  const [activeDesign, setActiveDesign] = useState<number | null>(null)
+  const [rubs, setRubs] = useState(0)
+  const [activeDesign, setActiveDesign] = useState<number | null>(resumeDesign ?? null)
+
+  /** Choosing a rug type, template or size is for signed-in users - log in first, then resume. */
+  function startDesign(index: number) {
+    if (user) setActiveDesign(index)
+    else navigate('/login', { state: { from: '/#create-design', fromState: { startDesign: index } } })
+  }
   const reduce = useReducedMotion()
-  const rubState = useRef({ lastX: 0, lastDir: 0, count: 0 })
+  const sectionRef = useRef<HTMLElement>(null)
+  const inView = useInView(sectionRef)
+  const rubState = useRef({ lastX: 0, lastDir: 0 })
 
   const reveal = () => setRevealed(true)
+  const rubProgress = Math.min(rubs / RUB_REVERSALS_NEEDED, 1)
+  // The wobble grows with every stroke, so the lamp visibly "wakes up" under the hand.
+  const wobble = 3 + rubProgress * 4
 
   function handlePointerEnter(e: React.PointerEvent) {
     if (revealed || e.pointerType !== 'mouse') return
-    rubState.current = { lastX: e.clientX, lastDir: 0, count: 0 }
+    rubState.current = { lastX: e.clientX, lastDir: 0 }
     setRubbing(true)
   }
 
@@ -91,25 +127,26 @@ function CreateDesignSection() {
     if (Math.abs(dx) < RUB_MOVE_THRESHOLD) return
     const dir = dx > 0 ? 1 : -1
     if (rubState.current.lastDir !== 0 && dir !== rubState.current.lastDir) {
-      rubState.current.count += 1
-      if (rubState.current.count >= RUB_REVERSALS_NEEDED) {
-        reveal()
-      }
+      const next = rubs + 1
+      setRubs(next)
+      if (next >= RUB_REVERSALS_NEEDED) reveal()
     }
     rubState.current.lastDir = dir
     rubState.current.lastX = e.clientX
   }
 
+  // Progress survives slipping off the lamp - only the direction tracking restarts.
   function handlePointerLeave() {
     setRubbing(false)
-    rubState.current.count = 0
     rubState.current.lastDir = 0
   }
 
   const active = activeDesign !== null ? designs[activeDesign] : null
+  const hint = rubs > 0 ? 'Keep rubbing…' : canRub ? 'Rub the lamp to begin' : 'Tap the lamp to begin'
 
   return (
     <section
+      ref={sectionRef}
       id="create-design"
       className="scroll-mt-16 overflow-hidden bg-night-950 px-4 py-24 sm:py-28"
     >
@@ -135,30 +172,67 @@ function CreateDesignSection() {
         >
           <div className="flex flex-col items-center">
             {revealed && (
-              <motion.img
-                src={genieImg}
-                alt=""
-                aria-hidden="true"
-                style={{ transformOrigin: '50% 100%' }}
-                initial={reduce ? false : { opacity: 0, y: 60, scale: 0.2, rotate: -10 }}
-                animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
-                transition={{ type: 'spring', stiffness: 110, damping: 12, delay: reduce ? 0 : 0.3 }}
-                className="-mb-3 w-[240px] select-none drop-shadow-[0_22px_26px_rgba(0,0,0,0.5)] sm:w-[280px] md:w-[320px]"
-              />
+              // Outer layer: the idle float, pivoting on the tail so the genie sways from the
+              // spout. Parks while the section is offscreen.
+              <motion.div
+                style={{ transformOrigin: '76% 98%' }}
+                className="-mb-6 w-[240px] drop-shadow-[0_22px_26px_rgba(0,0,0,0.5)] sm:w-[280px] md:w-[320px]"
+                animate={reduce || !inView ? { y: 0, rotate: 0 } : { y: [0, -8, 0], rotate: [0, 1.2, 0, -1.2, 0] }}
+                transition={
+                  reduce || !inView
+                    ? { duration: 0.4 }
+                    : {
+                        y: { duration: 3.6, repeat: Infinity, ease: 'easeInOut', delay: REVEAL_TIMING.genie + 1 },
+                        rotate: { duration: 5, repeat: Infinity, ease: 'easeInOut', delay: REVEAL_TIMING.genie + 1 },
+                      }
+                }
+              >
+                {/* Inner layer: the entrance - he condenses out of the smoke, growing from the
+                    tail tip, which sits over the lamp's spout. */}
+                <motion.img
+                  src={genieImg}
+                  alt=""
+                  aria-hidden="true"
+                  style={{ transformOrigin: '76% 98%' }}
+                  initial={reduce ? false : { opacity: 0, scale: 0.12, rotate: 14, filter: 'blur(12px)' }}
+                  animate={{ opacity: 1, scale: 1, rotate: 0, filter: 'blur(0px)' }}
+                  transition={{
+                    delay: reduce ? 0 : REVEAL_TIMING.genie,
+                    scale: { type: 'spring', stiffness: 120, damping: 14, delay: REVEAL_TIMING.genie },
+                    rotate: { type: 'spring', stiffness: 120, damping: 14, delay: REVEAL_TIMING.genie },
+                    opacity: { duration: 0.35, delay: REVEAL_TIMING.genie },
+                    filter: { duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: REVEAL_TIMING.genie },
+                  }}
+                  className="w-full select-none"
+                />
+              </motion.div>
             )}
 
             <div className="relative flex items-end justify-center">
+              {/* Glow brightens with each rub stroke (outer), pulses only while the lamp is
+                  still waiting and on screen (inner), then holds steady once opened. */}
               <motion.div
                 aria-hidden="true"
-                className="absolute inset-x-0 top-1/4 h-2/3 rounded-full bg-gold-500/25 blur-3xl"
-                animate={
-                  reduce
-                    ? { opacity: 0.25 }
-                    : { opacity: [0.15, 0.32, 0.15], scale: [0.9, 1, 0.9] }
-                }
-                transition={{ duration: 3.4, repeat: reduce ? 0 : Infinity, ease: 'easeInOut' }}
-              />
+                className="absolute inset-x-0 top-1/4 h-2/3"
+                animate={{ opacity: revealed ? 1 : 0.55 + rubProgress * 0.45, scale: 1 + rubProgress * 0.15 }}
+                transition={{ duration: 0.3 }}
+              >
+                <motion.div
+                  className="h-full w-full rounded-full bg-gold-500/25 blur-3xl"
+                  animate={
+                    reduce || revealed || !inView
+                      ? { opacity: 0.3, scale: 1 }
+                      : { opacity: [0.25, 0.55, 0.25], scale: [0.9, 1, 0.9] }
+                  }
+                  transition={
+                    reduce || revealed || !inView
+                      ? { duration: 0.6 }
+                      : { duration: 3.4, repeat: Infinity, ease: 'easeInOut' }
+                  }
+                />
+              </motion.div>
 
+              <LampSmoke rubs={rubs} revealed={revealed} />
               <LampSparkles active={revealed} />
 
               <motion.button
@@ -167,8 +241,7 @@ function CreateDesignSection() {
                 onPointerEnter={handlePointerEnter}
                 onPointerMove={handlePointerMove}
                 onPointerLeave={handlePointerLeave}
-                onFocus={reveal}
-                aria-label="Rub the lamp to reveal the starting patterns"
+                aria-label="Open the lamp to reveal the starting patterns"
                 layout
                 transition={{ type: 'spring', stiffness: 160, damping: 16 }}
                 className={`group relative z-10 cursor-pointer bg-transparent ${
@@ -178,12 +251,16 @@ function CreateDesignSection() {
                 <motion.img
                   src={lampImg}
                   alt="A golden magic lamp"
+                  loading="lazy"
+                  decoding="async"
+                  width={700}
+                  height={382}
                   className="w-full select-none drop-shadow-[0_18px_22px_rgba(0,0,0,0.45)]"
                   animate={
                     reduce
                       ? {}
                       : rubbing && !revealed
-                        ? { rotate: [-3, 3, -3] }
+                        ? { rotate: [-wobble, wobble, -wobble] }
                         : { rotate: 0 }
                   }
                   transition={
@@ -198,11 +275,12 @@ function CreateDesignSection() {
 
           <motion.p
             aria-hidden={revealed}
+            aria-live="polite"
             animate={{ opacity: revealed ? 0 : 1 }}
             transition={{ duration: 0.4 }}
             className="pointer-events-none mt-4 text-sm text-sand-300/70"
           >
-            Rub the lamp to begin
+            {hint}
           </motion.p>
         </motion.div>
 
@@ -222,7 +300,7 @@ function CreateDesignSection() {
                 visual={design.visual}
                 description={design.description}
                 index={index}
-                onStart={() => setActiveDesign(index)}
+                onStart={() => startDesign(index)}
               />
             ))}
           </motion.div>

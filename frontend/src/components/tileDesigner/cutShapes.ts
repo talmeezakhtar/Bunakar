@@ -7,30 +7,31 @@ import type { CutType, Rotation, Slot, TileCell } from '../../types/tileDesign'
  */
 const CUT_PATHS: Record<string, string> = {
   full: 'M0,0 L1,0 L1,1 L0,1 Z',
-  half: 'M0,0 L0.5,0 L0.5,1 L0,1 Z',
   diagonal: 'M0,0 L1,0 L0,1 Z',
   arc: 'M0,0 L1,0 A1,1 0 0 1 0,1 Z',
   'arc-remnant': 'M1,0 L1,1 L0,1 A1,1 0 0 0 1,0 Z',
 }
 
 /**
- * Cuts that subdivide a tile into a grid/strip of equal pieces (quad = 2x2, third/quarter =
+ * Cuts that subdivide a tile into a grid/strip of equal pieces (quad = 2x2, half/third/quarter =
  * strips, ninth/sixteenth = 3x3/4x4). These are placed by exact sub-cell position - "slot" -
  * rather than by rotation, so e.g. a "1/3" piece can land in the left, middle, *or* right
  * third, not just wherever a 90-degree turn happens to put it.
  *
- * The strip cuts (third, quarter) additionally use `rotation` for the one thing rotation can
+ * The strip cuts (half, third, quarter) additionally use `rotation` for the one thing rotation can
  * still mean for a strip: which way it runs. 0/180 keeps the strip horizontal; 90/270 turns it
  * vertical (and transposes the slot grid to match). The square subdivisions (quad, ninth,
  * sixteenth) are rotationally symmetric, so rotation is ignored for those.
  */
-const ROTATABLE_STRIP_TYPES: CutType[] = ['third', 'quarter']
+const ROTATABLE_STRIP_TYPES: CutType[] = ['half', 'third', 'quarter']
 
 export function slotGrid(cutType: CutType, rotation: Rotation = 0): { cols: number; rows: number } {
   const base = (() => {
     switch (cutType) {
       case 'quad':
         return { cols: 2, rows: 2 }
+      case 'half':
+        return { cols: 2, rows: 1 }
       case 'third':
         return { cols: 3, rows: 1 }
       case 'quarter':
@@ -99,8 +100,6 @@ function pointInBaseCut(cutType: CutType, x: number, y: number): boolean {
   switch (cutType) {
     case 'full':
       return true
-    case 'half':
-      return x <= 0.5
     case 'diagonal':
       return x + y <= 1
     case 'arc':
@@ -149,10 +148,12 @@ export function cutsOverlap(
     return ra.x0 < rb.x1 && ra.x1 > rb.x0 && ra.y0 < rb.y1 && ra.y1 > rb.y0
   }
   const n = OVERLAP_SAMPLE_RESOLUTION
+  // Unequal off-center offsets keep samples off shared edges (both diagonals), which both
+  // complementary triangles count as "inside" - centered samples made that pair un-placeable.
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
-      const x = (i + 0.5) / n
-      const y = (j + 0.5) / n
+      const x = (i + 0.37) / n
+      const y = (j + 0.61) / n
       if (pointInCut(a, x, y) && pointInCut(b, x, y)) return true
     }
   }

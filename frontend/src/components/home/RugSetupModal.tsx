@@ -1,11 +1,20 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
+import { useModalFocus } from '../../hooks/useModalFocus'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Ruler, X } from '@phosphor-icons/react'
 import { motion } from 'motion/react'
 import type { DesignShape } from '../../types/design'
+import { MAX_RUG_FT, feetToTiles } from '../../types/tileDesign'
+import { COLORWAYS, PATTERN_TEMPLATES, TEMPLATE_CATEGORIES, findColorway } from '../../data/patternTemplates'
+import type { TemplateCategory } from '../../data/patternTemplates'
+import { MOCK_SWATCHES } from '../../data/mockSwatches'
 import PatternThumb from './PatternThumb'
 import type { PatternFamily } from './PatternThumb'
+import TemplatePreview from './TemplatePreview'
+import FreeformPreview from './FreeformPreview'
+import { FREEFORM_GENERATORS, FREEFORM_PALETTES } from '../../data/freeformGenerators'
+import type { GeneratorId } from '../../data/freeformGenerators'
 
 type RugType = 'runner' | 'area' | 'wall'
 
@@ -51,6 +60,14 @@ function TypeGlyph({ type, selected }: { type: RugType; selected: boolean }) {
   )
 }
 
+type Step = 'pattern' | 'look' | 'type' | 'size'
+
+const STEP_LABELS: Record<Step, string> = { pattern: 'Pattern', look: 'Look', type: 'Type', size: 'Size' }
+
+function swatchColor([familyId, colorName]: readonly [string, string]) {
+  return MOCK_SWATCHES.find((s) => s.familyId === familyId && s.colorName === colorName)?.swatchColor
+}
+
 type RugSetupModalProps = {
   onClose: () => void
   patternName: string
@@ -59,47 +76,24 @@ type RugSetupModalProps = {
 
 function RugSetupModal({ onClose, patternName, patternFamily }: RugSetupModalProps) {
   const navigate = useNavigate()
-  const [step, setStep] = useState<1 | 2>(1)
+  const steps: Step[] =
+    patternFamily === 'template' ? ['pattern', 'type', 'size'] : patternFamily === 'freeform' ? ['look', 'type', 'size'] : ['type', 'size']
+  const [look, setLook] = useState<{ generator: GeneratorId; paletteId: string }>({
+    generator: FREEFORM_GENERATORS[0].id,
+    paletteId: FREEFORM_GENERATORS[0].paletteId,
+  })
+  const [stepIndex, setStepIndex] = useState(0)
+  const step = steps[stepIndex]
+  const [templateId, setTemplateId] = useState(PATTERN_TEMPLATES[0].id)
+  const [colorwayId, setColorwayId] = useState(PATTERN_TEMPLATES[0].colorwayId)
+  const [category, setCategory] = useState<TemplateCategory | 'All'>('All')
   const [rugType, setRugType] = useState<RugType>('runner')
   const [sizeIndex, setSizeIndex] = useState<number | 'custom'>(0)
   const [customWidth, setCustomWidth] = useState('')
   const [customHeight, setCustomHeight] = useState('')
   const dialogRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const dialog = dialogRef.current
-    if (!dialog) return
-
-    const focusableSelector =
-      'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    dialog.querySelector<HTMLElement>(focusableSelector)?.focus()
-
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        onClose()
-        return
-      }
-      if (e.key !== 'Tab' || !dialog) return
-      const items = Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector))
-      if (items.length === 0) return
-      const first = items[0]
-      const last = items[items.length - 1]
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault()
-        last.focus()
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault()
-        first.focus()
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = prevOverflow
-    }
-  }, [onClose])
+  useModalFocus(dialogRef, onClose)
 
   const presets = TYPE_SIZE_PRESETS[rugType]
   const isCustomOnly = presets.length === 0
@@ -107,7 +101,12 @@ function RugSetupModal({ onClose, patternName, patternFamily }: RugSetupModalPro
     !isCustomOnly && sizeIndex !== 'custom' ? presets[sizeIndex].widthFt : Number(customWidth) || 0
   const heightFt =
     !isCustomOnly && sizeIndex !== 'custom' ? presets[sizeIndex].heightFt : Number(customHeight) || 0
-  const canProceedStep2 = widthFt > 0 && heightFt > 0
+  // Past the max the designer grid would be too big to render (and the API rejects it).
+  const tooBig = widthFt > MAX_RUG_FT || heightFt > MAX_RUG_FT
+  const canProceed = step !== 'size' || (widthFt > 0 && heightFt > 0 && !tooBig)
+  const template = PATTERN_TEMPLATES.find((t) => t.id === templateId)!
+  const colorway = findColorway(colorwayId) ?? COLORWAYS[0]
+  const visibleTemplates = category === 'All' ? PATTERN_TEMPLATES : PATTERN_TEMPLATES.filter((t) => t.category === category)
 
   function selectType(type: RugType) {
     setRugType(type)
@@ -116,12 +115,31 @@ function RugSetupModal({ onClose, patternName, patternFamily }: RugSetupModalPro
     setCustomHeight('')
   }
 
+  // Picking a template also picks its signature colorway; the colorway row can then override it.
+  function selectTemplate(id: string) {
+    setTemplateId(id)
+    setColorwayId(PATTERN_TEMPLATES.find((t) => t.id === id)!.colorwayId)
+  }
+
   function handlePrimary() {
-    if (step === 1) {
-      setStep(2)
+    if (stepIndex < steps.length - 1) {
+      setStepIndex(stepIndex + 1)
       return
     }
-    navigate('/designer', { state: { shape: TYPE_TO_SHAPE[rugType], rugCategory: rugType, widthFt, heightFt } })
+    if (patternFamily === 'freeform') {
+      // Freeform rugs are one hand-tufted piece: their own designer, sized in feet.
+      navigate('/freeform', { state: { generator: look.generator, paletteId: look.paletteId, widthFt, heightFt, rugCategory: rugType } })
+      return
+    }
+    navigate('/designer', {
+      state: {
+        shape: TYPE_TO_SHAPE[rugType],
+        rugCategory: rugType,
+        widthFt,
+        heightFt,
+        ...(patternFamily === 'template' && { templateId, colorwayId }),
+      },
+    })
   }
 
   return createPortal(
@@ -135,27 +153,172 @@ function RugSetupModal({ onClose, patternName, patternFamily }: RugSetupModalPro
         role="dialog"
         aria-modal="true"
         aria-labelledby="rug-setup-title"
-        className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto rounded-2xl border border-night-600 bg-night-900 shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
+        className={`relative flex max-h-[90vh] w-full flex-col overflow-y-auto rounded-2xl border border-night-600 bg-night-900 shadow-[0_30px_80px_rgba(0,0,0,0.6)] ${
+          step === 'pattern' || step === 'look' ? 'max-w-4xl' : 'max-w-2xl'
+        }`}
       >
         <header className="flex items-center justify-between border-b border-night-700 px-5 py-4">
           <div className="flex items-center gap-2 text-sm">
             <span className="font-display tracking-wide text-sand-100">{patternName}</span>
             <span className="text-night-600">/</span>
-            <span className="text-sand-300">{step === 1 ? 'Type' : 'Size'}</span>
+            <span className="text-sand-300">{STEP_LABELS[step]}</span>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded-full bg-transparent p-1.5 text-sand-300 transition-colors hover:text-gold-400"
+            className="inline-flex items-center justify-center rounded-full bg-transparent p-1.5 text-sand-300 pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors hover:text-gold-400"
           >
             <X size={18} />
           </button>
         </header>
 
+        {step === 'look' ? (
+          <div className="px-6 py-8">
+            <h3 id="rug-setup-title" className="font-display text-2xl tracking-wide text-sand-100">
+              Choose a look
+            </h3>
+            <p className="mt-1 text-sm text-sand-300/80">
+              A starting layout for your hand-tufted rug. Every shape, yarn, texture and carving stays editable.
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+              {FREEFORM_GENERATORS.map((g) => {
+                const selected = g.id === look.generator
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setLook({ generator: g.id, paletteId: g.paletteId })}
+                    className={`flex flex-col rounded-xl border p-2 text-left transition-colors ${
+                      selected ? 'border-gold-500 bg-night-800' : 'border-night-600 hover:border-night-500'
+                    }`}
+                  >
+                    <FreeformPreview
+                      generatorId={g.id}
+                      paletteId={selected ? look.paletteId : g.paletteId}
+                      widthFt={4}
+                      heightFt={5}
+                      className="aspect-[4/5] w-full rounded-md"
+                    />
+                    <span className="mt-2 text-sm font-medium text-sand-100">{g.name}</span>
+                    <span className="mt-0.5 line-clamp-2 text-xs leading-snug text-sand-300/70">{g.description}</span>
+                  </button>
+                )
+              })}
+            </div>
+            <fieldset className="mt-6">
+              <legend className="text-xs uppercase tracking-wide text-sand-300/60">Palette</legend>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {FREEFORM_PALETTES.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setLook({ ...look, paletteId: p.id })}
+                    aria-pressed={p.id === look.paletteId}
+                    className={`flex items-center gap-2 rounded-full border py-1.5 pl-2 pr-3.5 text-xs transition-colors ${
+                      p.id === look.paletteId ? 'border-gold-500 text-sand-100' : 'border-night-600 text-sand-300 hover:border-night-500'
+                    }`}
+                  >
+                    <span className="flex -space-x-1" aria-hidden="true">
+                      {[p.ground, ...p.colors].slice(0, 5).map((ref, i) => (
+                        <span key={i} className="h-4 w-4 rounded-full border border-night-900" style={{ background: swatchColor(ref) }} />
+                      ))}
+                    </span>
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          </div>
+        ) : step === 'pattern' ? (
+          <div className="px-6 py-8">
+            <h3 id="rug-setup-title" className="font-display text-2xl tracking-wide text-sand-100">
+              Choose a pattern
+            </h3>
+            <p className="mt-1 text-sm text-sand-300/80">
+              {PATTERN_TEMPLATES.length} layouts drawn from weaving traditions. Every piece stays editable in the designer.
+            </p>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              {(['All', ...TEMPLATE_CATEGORIES] as const).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  aria-pressed={category === c}
+                  onClick={() => setCategory(c)}
+                  className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                    category === c
+                      ? 'border-gold-500 bg-gold-500/15 text-gold-300'
+                      : 'border-night-600 text-sand-300 hover:border-night-500'
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              {visibleTemplates.map((t) => {
+                const selected = t.id === templateId
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => selectTemplate(t.id)}
+                    aria-pressed={selected}
+                    className={`flex flex-col rounded-xl border p-2 text-left transition-colors ${
+                      selected ? 'border-gold-500 bg-night-800' : 'border-night-600 hover:border-night-500'
+                    }`}
+                  >
+                    <TemplatePreview
+                      template={t}
+                      colorway={selected ? colorway : (findColorway(t.colorwayId) ?? COLORWAYS[0])}
+                      widthTiles={4}
+                      heightTiles={5}
+                      className="aspect-[4/5] w-full rounded-md"
+                    />
+                    <span className="mt-2 text-sm font-medium text-sand-100">{t.name}</span>
+                    <span className="mt-0.5 line-clamp-2 text-xs leading-snug text-sand-300/70">{t.origin}</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            <fieldset className="mt-6">
+              <legend className="text-xs uppercase tracking-wide text-sand-300/60">Colorway</legend>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {COLORWAYS.map((cw) => (
+                  <button
+                    key={cw.id}
+                    type="button"
+                    onClick={() => setColorwayId(cw.id)}
+                    aria-pressed={cw.id === colorwayId}
+                    className={`flex items-center gap-2 rounded-full border py-1.5 pl-2 pr-3.5 text-xs transition-colors ${
+                      cw.id === colorwayId
+                        ? 'border-gold-500 text-sand-100'
+                        : 'border-night-600 text-sand-300 hover:border-night-500'
+                    }`}
+                  >
+                    <span className="flex -space-x-1" aria-hidden="true">
+                      {cw.roles.map((ref, i) => (
+                        <span
+                          key={i}
+                          className="h-4 w-4 rounded-full border border-night-900"
+                          style={{ background: swatchColor(ref) }}
+                        />
+                      ))}
+                    </span>
+                    {cw.name}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          </div>
+        ) : (
         <div className="flex flex-col gap-8 px-6 py-8 sm:flex-row sm:gap-10">
           <div className="flex-1">
-            {step === 1 ? (
+            {step === 'type' ? (
               <>
                 <h3 id="rug-setup-title" className="font-display text-2xl tracking-wide text-sand-100">
                   What type of rug are you designing?
@@ -193,12 +356,35 @@ function RugSetupModal({ onClose, patternName, patternFamily }: RugSetupModalPro
                           sizeIndex === i ? 'border-gold-500 bg-night-800' : 'border-night-600 hover:border-night-500'
                         }`}
                       >
-                        <PatternThumb
-                          family={patternFamily}
-                          variant={i}
-                          className="mx-auto w-full rounded-md"
-                          style={{ aspectRatio: `${preset.widthFt} / ${preset.heightFt}` }}
-                        />
+                        {patternFamily === 'freeform' ? (
+                          <FreeformPreview
+                            generatorId={look.generator}
+                            paletteId={look.paletteId}
+                            widthFt={preset.widthFt}
+                            heightFt={preset.heightFt}
+                            preserveAspectRatio="none"
+                            className="mx-auto h-24 w-auto max-w-full rounded-md"
+                            style={{ aspectRatio: `${preset.widthFt} / ${preset.heightFt}` }}
+                          />
+                        ) : patternFamily === 'template' ? (
+                          <TemplatePreview
+                            template={template}
+                            colorway={colorway}
+                            widthTiles={feetToTiles(preset.widthFt)}
+                            heightTiles={feetToTiles(preset.heightFt)}
+                            preserveAspectRatio="none"
+                            className="mx-auto h-24 w-auto max-w-full rounded-md"
+                            style={{ aspectRatio: `${preset.widthFt} / ${preset.heightFt}` }}
+                          />
+                        ) : (
+                          <PatternThumb
+                            family={patternFamily}
+                            variant={i}
+                            preserveAspectRatio="none"
+                            className="mx-auto h-24 w-auto max-w-full rounded-md"
+                            style={{ aspectRatio: `${preset.widthFt} / ${preset.heightFt}` }}
+                          />
+                        )}
                         <span className="mt-2 block text-sm text-sand-200">{preset.label}</span>
                       </button>
                     ))}
@@ -212,28 +398,37 @@ function RugSetupModal({ onClose, patternName, patternFamily }: RugSetupModalPro
                   <input
                     type="number"
                     min={1}
+                    max={MAX_RUG_FT}
                     placeholder="Width"
+                    aria-label="Custom width in feet"
                     value={customWidth}
                     onChange={(e) => {
                       setCustomWidth(e.target.value)
                       setSizeIndex('custom')
                     }}
-                    className="w-24 rounded-md border border-night-600 bg-night-950 px-3 py-2 text-center text-sm text-sand-100 placeholder:text-sand-300/55 focus:border-gold-500 focus:outline-none"
+                    className="w-24 rounded-md border border-night-600 bg-night-950 px-3 py-2 text-center text-sm text-sand-100 placeholder:text-sand-300/70 focus:border-gold-500 focus:outline-none"
                   />
                   <span className="text-sand-300/60">x</span>
                   <input
                     type="number"
                     min={1}
-                    placeholder="Height"
+                    max={MAX_RUG_FT}
+                    placeholder="Length"
+                    aria-label="Custom length in feet"
                     value={customHeight}
                     onChange={(e) => {
                       setCustomHeight(e.target.value)
                       setSizeIndex('custom')
                     }}
-                    className="w-24 rounded-md border border-night-600 bg-night-950 px-3 py-2 text-center text-sm text-sand-100 placeholder:text-sand-300/55 focus:border-gold-500 focus:outline-none"
+                    className="w-24 rounded-md border border-night-600 bg-night-950 px-3 py-2 text-center text-sm text-sand-100 placeholder:text-sand-300/70 focus:border-gold-500 focus:outline-none"
                   />
                   <span className="text-sm text-sand-300/60">ft</span>
                 </div>
+                {tooBig && (
+                  <p role="alert" className="mt-2 text-center text-xs text-red-300">
+                    The largest rug we can weave here is {MAX_RUG_FT} ft on a side.
+                  </p>
+                )}
               </>
             )}
           </div>
@@ -247,22 +442,23 @@ function RugSetupModal({ onClose, patternName, patternFamily }: RugSetupModalPro
             </p>
           </div>
         </div>
+        )}
 
         <footer className="flex items-center justify-between border-t border-night-700 px-6 py-4">
           <button
             type="button"
-            onClick={() => (step === 1 ? onClose() : setStep(1))}
-            className="rounded-full border border-night-600 bg-transparent px-5 py-2 text-sm font-medium text-sand-200 transition-colors hover:border-sand-300"
+            onClick={() => (stepIndex === 0 ? onClose() : setStepIndex(stepIndex - 1))}
+            className="rounded-full border border-night-600 bg-transparent px-5 py-2 text-sm pointer-coarse:min-h-11 font-medium text-sand-200 transition-colors hover:border-sand-300"
           >
-            {step === 1 ? 'Cancel' : 'Back'}
+            {stepIndex === 0 ? 'Cancel' : 'Back'}
           </button>
           <button
             type="button"
             onClick={handlePrimary}
-            disabled={step === 2 && !canProceedStep2}
-            className="rounded-full bg-gold-500 px-6 py-2 text-sm font-semibold text-night-950 transition-colors hover:bg-gold-400 disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={!canProceed}
+            className="rounded-full bg-gold-500 px-6 py-2 text-sm pointer-coarse:min-h-11 font-semibold text-night-950 transition-colors hover:bg-gold-400 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {step === 1 ? 'Next' : 'Start Designing'}
+            {stepIndex < steps.length - 1 ? 'Next' : 'Start Designing'}
           </button>
         </footer>
       </motion.div>

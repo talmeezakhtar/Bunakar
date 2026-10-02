@@ -1,26 +1,36 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, useAnimationControls, useReducedMotion } from 'motion/react'
-import palaceImg from '../../assets/palace-bg.jpg'
-import aladdinImg from '../../assets/aladdin-carpet.png'
+import { motion, useAnimationControls, useInView, useReducedMotion } from 'motion/react'
+import palaceImg from '../../assets/palace-bg.webp'
+import aladdinImg from '../../assets/aladdin-carpet.webp'
+
+// The carpet's shadow reads its height: higher = softer, wider, fainter. Same structure in
+// every value so Motion can interpolate between them.
+const SHADOW_FAR = 'drop-shadow(0px 50px 55px rgba(0,0,0,0.15))'
+const SHADOW_REST = 'drop-shadow(0px 25px 35px rgba(0,0,0,0.5))'
+const SHADOW_HIGH = 'drop-shadow(0px 34px 44px rgba(0,0,0,0.36))'
 
 function Hero() {
   const reduce = useReducedMotion()
   const riderControls = useAnimationControls()
+  const sectionRef = useRef<HTMLElement>(null)
+  const inView = useInView(sectionRef)
+  const [landed, setLanded] = useState(false)
 
   useEffect(() => {
     if (reduce) {
-      riderControls.set({ x: 0, y: 0, rotate: 0, opacity: 1, scale: 1 })
+      riderControls.set({ x: 0, y: 0, rotate: 0, opacity: 1, scale: 1, filter: SHADOW_REST })
       return
     }
     let cancelled = false
-    async function flyIn() {
-      await riderControls.start({
+    riderControls
+      .start({
         x: ['-62vw', '-16vw', '0vw'],
         y: ['-40vh', '3vh', '0vh'],
         rotate: [-18, 5, 0],
         opacity: [0, 1, 1],
         scale: [0.7, 1.04, 1],
+        filter: [SHADOW_FAR, SHADOW_REST, SHADOW_REST],
         transition: {
           duration: 2.8,
           delay: 0.3,
@@ -28,23 +38,40 @@ function Hero() {
           ease: ['easeIn', 'easeOut'],
         },
       })
-      if (!cancelled) {
-        riderControls.start({
-          y: ['0vh', '-1.2vh', '0vh'],
-          transition: { duration: 3.8, repeat: Infinity, ease: 'easeInOut' },
-        })
-      }
-    }
-    flyIn()
+      .then(() => {
+        if (!cancelled) setLanded(true)
+      })
     return () => {
       cancelled = true
     }
   }, [reduce, riderControls])
 
-  const textDelayBase = reduce ? 0 : 3.0
+  // Hover on the air once landed: the tilt runs on a different period than the bob so the
+  // carpet never repeats the same pose, and the loop parks whenever the hero is scrolled away.
+  useEffect(() => {
+    if (!landed || reduce) return
+    if (!inView) {
+      riderControls.start({ y: '0vh', rotate: 0, filter: SHADOW_REST, transition: { duration: 0.4 } })
+      return
+    }
+    const bob = { duration: 3.8, repeat: Infinity, ease: 'easeInOut' } as const
+    riderControls.start({
+      y: ['0vh', '-1.2vh', '0vh'],
+      filter: [SHADOW_REST, SHADOW_HIGH, SHADOW_REST],
+      rotate: [0, 1.4, 0, -1.4, 0],
+      transition: {
+        y: bob,
+        filter: bob,
+        rotate: { duration: 5.3, repeat: Infinity, ease: 'easeInOut' },
+      },
+    })
+  }, [landed, inView, reduce, riderControls])
+
+  // Copy lands while the carpet is still in flight - nobody waits out the entrance to read.
+  const textDelayBase = reduce ? 0 : 0.6
 
   return (
-    <section className="relative h-[100dvh] overflow-hidden bg-night-950">
+    <section ref={sectionRef} className="relative h-[100dvh] overflow-hidden bg-night-950">
       <motion.div
         className="absolute inset-0"
         initial={reduce ? false : { opacity: 0, scale: 1.08 }}
@@ -54,6 +81,10 @@ function Hero() {
         <img
           src={palaceImg}
           alt="A golden-domed palace above a lantern-lit desert town at sunset"
+          width={1199}
+          height={595}
+          // The largest thing in the first view: fetch it ahead of everything else.
+          fetchPriority="high"
           className="h-full w-full object-cover object-bottom"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-night-950/70 via-night-950/15 to-night-950" />
@@ -68,10 +99,11 @@ function Hero() {
             initial={
               reduce
                 ? false
-                : { x: '-62vw', y: '-40vh', rotate: -18, opacity: 0, scale: 0.7 }
+                : { x: '-62vw', y: '-40vh', rotate: -18, opacity: 0, scale: 0.7, filter: SHADOW_FAR }
             }
             animate={riderControls}
-            className="h-[clamp(100px,24vh,300px)] max-h-full w-auto select-none drop-shadow-[0_25px_35px_rgba(0,0,0,0.5)]"
+            style={reduce ? { filter: SHADOW_REST } : undefined}
+            className="h-[clamp(100px,24vh,300px)] max-h-full w-auto select-none"
           />
         </div>
 

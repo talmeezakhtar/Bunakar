@@ -31,8 +31,18 @@ function DesignerHeader({ name, onRename, onSave, saveStatus, myDesigns, current
     function onClickOutside(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
     }
+    // Escape closes the list and returns focus to its button, like a native dropdown.
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== 'Escape') return
+      setMenuOpen(false)
+      menuRef.current?.querySelector<HTMLElement>('button')?.focus()
+    }
     document.addEventListener('mousedown', onClickOutside)
-    return () => document.removeEventListener('mousedown', onClickOutside)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside)
+      document.removeEventListener('keydown', onKey)
+    }
   }, [menuOpen])
 
   function commitName() {
@@ -48,6 +58,8 @@ function DesignerHeader({ name, onRename, onSave, saveStatus, myDesigns, current
         {editing ? (
           <input
             autoFocus
+            aria-label="Design name"
+            maxLength={120}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commitName}
@@ -67,7 +79,7 @@ function DesignerHeader({ name, onRename, onSave, saveStatus, myDesigns, current
               type="button"
               onClick={startEditing}
               aria-label="Rename design"
-              className="rounded-full bg-transparent p-1 text-sand-400 transition-colors hover:text-gold-400"
+              className="inline-flex items-center justify-center rounded-full bg-transparent p-1 text-sand-400 pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors hover:text-gold-400"
             >
               <PencilSimple size={15} />
             </button>
@@ -80,12 +92,14 @@ function DesignerHeader({ name, onRename, onSave, saveStatus, myDesigns, current
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="flex items-center gap-1.5 rounded-full border border-night-600 px-3 py-1.5 text-sm text-sand-200 transition-colors hover:border-sand-300"
+            aria-expanded={menuOpen}
+            aria-controls="my-designs-list"
+            className="flex items-center gap-1.5 rounded-full border border-night-600 px-3 py-1.5 text-sm pointer-coarse:min-h-11 text-sand-200 transition-colors hover:border-sand-300"
           >
             My Designs <CaretDown size={13} />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-full z-20 mt-1 w-56 rounded-md border border-night-600 bg-night-900 py-1 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            <div id="my-designs-list" className="absolute right-0 top-full z-20 mt-1 w-56 rounded-md border border-night-600 bg-night-900 py-1 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
               {myDesigns.length === 0 ? (
                 <p className="px-3 py-2 text-xs text-sand-300/70">No saved designs yet.</p>
               ) : (
@@ -112,7 +126,7 @@ function DesignerHeader({ name, onRename, onSave, saveStatus, myDesigns, current
         <button
           type="button"
           onClick={onNew}
-          className="flex items-center gap-1.5 rounded-full border border-night-600 px-3 py-1.5 text-sm text-sand-200 transition-colors hover:border-sand-300"
+          className="flex items-center gap-1.5 rounded-full border border-night-600 px-3 py-1.5 text-sm pointer-coarse:min-h-11 text-sand-200 transition-colors hover:border-sand-300"
         >
           <FilePlus size={15} /> New Design
         </button>
@@ -121,7 +135,7 @@ function DesignerHeader({ name, onRename, onSave, saveStatus, myDesigns, current
           <button
             type="button"
             onClick={onDelete}
-            className="flex items-center gap-1.5 rounded-full border border-night-600 px-3 py-1.5 text-sm text-sand-200 transition-colors hover:border-red-400/60 hover:text-red-400"
+            className="flex items-center gap-1.5 rounded-full border border-night-600 px-3 py-1.5 text-sm pointer-coarse:min-h-11 text-sand-200 transition-colors hover:border-red-400/60 hover:text-red-400"
           >
             <Trash size={15} /> Delete
           </button>
@@ -131,7 +145,7 @@ function DesignerHeader({ name, onRename, onSave, saveStatus, myDesigns, current
           type="button"
           onClick={onSave}
           disabled={saveStatus === 'saving'}
-          className="flex items-center gap-1.5 rounded-full bg-gold-500 px-3.5 py-1.5 text-sm font-semibold tracking-wide text-night-950 transition-colors hover:bg-gold-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex items-center gap-1.5 rounded-full bg-gold-500 px-3.5 py-1.5 text-sm pointer-coarse:min-h-11 font-semibold tracking-wide text-night-950 transition-colors hover:bg-gold-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <FloppyDisk size={15} /> {saveStatus === 'saving' ? 'Saving...' : 'Save'}
         </button>

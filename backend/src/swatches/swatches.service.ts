@@ -12,12 +12,17 @@ export class SwatchesService implements OnModuleInit {
     @InjectRepository(Swatch) private readonly swatches: Repository<Swatch>,
   ) {}
 
+  /** Adds any seed swatch not yet in the table (matched on family + color), so styles added to
+   * the seed later reach databases that were seeded before them. Existing rows are left alone. */
   async onModuleInit() {
-    const count = await this.swatches.count();
-    if (count === 0) {
-      await this.swatches.save(this.swatches.create(SWATCH_SEED));
-      this.logger.log(`Seeded ${SWATCH_SEED.length} swatches`);
-    }
+    const existing = await this.swatches.find();
+    const have = new Set(existing.map((s) => `${s.familyId}/${s.colorName}`));
+    const missing = SWATCH_SEED.filter(
+      (s) => !have.has(`${s.familyId}/${s.colorName}`),
+    );
+    if (missing.length === 0) return;
+    await this.swatches.save(this.swatches.create(missing));
+    this.logger.log(`Seeded ${missing.length} swatches`);
   }
 
   findAll() {

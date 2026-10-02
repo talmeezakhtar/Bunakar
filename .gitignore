@@ -154,3 +154,5 @@ dist/
 # general
 .DS_Store
 *.log
+# Local design-review tool notes and cache
+.impeccable/

@@ -12,26 +12,29 @@ function ShapePanel({ activeCut, onSelectCut }: ShapePanelProps) {
   const cuts = CUT_TYPES.slice(1)
 
   return (
-    <aside className="w-full shrink-0 space-y-4 lg:w-40">
+    // Below lg this is one horizontally scrolling strip above the canvas, so the grid isn't pushed
+    // a full screen down behind ten stacked cards; at lg it's the familiar left column.
+    <aside aria-label="Tile shapes" className="w-full min-w-0 shrink-0 space-y-3 lg:w-40 lg:space-y-4">
       <h2 className="font-display text-sm tracking-wide text-sand-200">Tile Shape</h2>
 
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 lg:mx-0 lg:block lg:space-y-4 lg:overflow-visible lg:px-0 lg:pb-0">
       <button
         type="button"
         onClick={() => onSelectCut(standard.id)}
         aria-pressed={activeCut === standard.id}
-        className={`flex w-full flex-col items-center gap-2 rounded-lg border-2 px-3 py-4 transition-colors ${
+        className={`flex shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg border-2 px-3 py-2 transition-colors lg:w-full lg:gap-2 lg:py-4 ${
           activeCut === standard.id ? 'border-gold-500 bg-night-800' : 'border-night-700 bg-night-900 hover:border-night-500'
         }`}
       >
         <svg width="28" height="28" viewBox="0 0 1 1" aria-hidden="true">
           <path d={cutPath('full')} fill="none" stroke="#e6d5b3" strokeWidth="0.05" />
         </svg>
-        <span className="text-xs font-medium text-sand-100">{standard.label}</span>
+        <span className="whitespace-nowrap text-xs font-medium text-sand-100">{standard.label}</span>
       </button>
 
-      <div>
-        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-sand-300/60">Cuts</p>
-        <div className="grid grid-cols-1 gap-2">
+      <div className="flex shrink-0 gap-2 lg:block">
+        <p className="sr-only mb-2 text-xs font-medium uppercase tracking-wide text-sand-300/70 lg:not-sr-only lg:block">Cuts</p>
+        <div className="flex gap-2 lg:grid lg:grid-cols-1">
           {cuts.map((cut) => {
             const active = activeCut === cut.id
             const positionable = isPositionable(cut.id)
@@ -43,11 +46,11 @@ function ShapePanel({ activeCut, onSelectCut }: ShapePanelProps) {
                 onClick={() => onSelectCut(cut.id)}
                 aria-pressed={active}
                 title={positionable ? `${cut.label} - drag anywhere in the tile to position` : cut.label}
-                className={`flex w-full items-center gap-3 rounded-md border px-2.5 py-2.5 transition-colors ${
+                className={`flex shrink-0 flex-col items-center gap-1 rounded-md border px-2.5 py-2 transition-colors lg:w-full lg:flex-row lg:gap-3 lg:py-2.5 ${
                   active ? 'border-gold-500 bg-night-800' : 'border-night-700 bg-night-900 hover:border-night-500'
                 }`}
               >
-                <svg width="40" height="40" viewBox="0 0 1 1" className="shrink-0" aria-hidden="true">
+                <svg width="40" height="40" viewBox="0 0 1 1" className="h-8 w-8 shrink-0 lg:h-10 lg:w-10" aria-hidden="true">
                   <rect x="0" y="0" width="1" height="1" fill="none" stroke="#3a4470" strokeWidth="0.02" />
                   {positionable ? (
                     <>
@@ -79,11 +82,12 @@ function ShapePanel({ activeCut, onSelectCut }: ShapePanelProps) {
                     <path d={cutPath(cut.id)} fill={active ? '#f0c774' : '#7d88b3'} />
                   )}
                 </svg>
-                <span className="text-sm text-sand-300">{cut.label}</span>
+                <span className="whitespace-nowrap text-xs text-sand-300 lg:text-sm">{cut.label}</span>
               </button>
             )
           })}
         </div>
+      </div>
       </div>
     </aside>
   )
