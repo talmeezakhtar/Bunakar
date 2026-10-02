@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Rubaith";
+  src: url("./assets/fonts/Rubaith.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-display: "Cinzel", "Georgia", serif;
+  --font-sans: "Outfit", "Segoe UI", sans-serif;
+  --font-logo: "Rubaith", "Cinzel", serif;
+
+  --color-night-950: #070a16;
+  --color-night-900: #0b0f22;
+  --color-night-800: #131a33;
+  --color-night-700: #1c2444;
+  --color-night-600: #2a3462;
+
+  --color-gold-400: #f0c774;
+  --color-gold-500: #d9a441;
+  --color-gold-600: #b8842a;
+
+  --color-sand-100: #f7efe0;
+  --color-sand-200: #eee2c9;
+  --color-sand-300: #e6d5b3;
+  --color-sand-400: #ddc89c;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-night-950);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background-color: var(--color-gold-500);
+  color: var(--color-night-950);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-gold-400);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+* {
+  scrollbar-color: var(--color-night-600) var(--color-night-950);
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-night-950);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-night-600);
+  border-radius: 999px;
+  border: 2px solid var(--color-night-950);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold-600);
+}
+
+/* The auth form draws its own show/hide toggle - drop Edge's built-in one so there aren't two. */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
