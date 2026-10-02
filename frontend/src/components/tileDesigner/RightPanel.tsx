@@ -4,6 +4,9 @@ import type { CutType, Rotation, TileDesignState } from '../../types/tileDesign'
 import { formatRugSize } from '../../types/tileDesign'
 import MyStylesPanel from './MyStylesPanel'
 import LivePreview from './LivePreview'
+import DesignsPanel from './DesignsPanel'
+import type { ComponentProps } from 'react'
+import { estimateTileRug, formatINR } from '../../utils/tilePricing'
 
 type RightPanelProps = {
   state: TileDesignState
@@ -18,6 +21,7 @@ type RightPanelProps = {
   onContinue: () => void
   saveStatus: 'idle' | 'saving' | 'saved' | 'error'
   onStartDrag: (id: string) => void
+  designs: ComponentProps<typeof DesignsPanel>
 }
 
 function RightPanel({
@@ -33,11 +37,13 @@ function RightPanel({
   onContinue,
   saveStatus,
   onStartDrag,
+  designs,
 }: RightPanelProps) {
+  const estimate = estimateTileRug(state)
   const previewSwatch = activeBrush ? (swatchesById.get(activeBrush) ?? null) : null
 
   return (
-    <aside className="flex w-full flex-col gap-5 lg:w-80 lg:shrink-0">
+    <aside aria-label="Styles and size" className="flex w-full flex-col gap-5 lg:w-80 lg:shrink-0">
       <MyStylesPanel
         myStyles={state.myStyles}
         swatchesById={swatchesById}
@@ -50,6 +56,8 @@ function RightPanel({
 
       <LivePreview swatch={previewSwatch} cutType={activeCut} rotation={activeRotation} />
 
+      <DesignsPanel {...designs} />
+
       <section className="flex items-center justify-between border-t border-night-700 pt-4">
         <div>
           <p className="text-xs text-sand-300/70">Rug Size</p>
@@ -58,10 +66,26 @@ function RightPanel({
         <button
           type="button"
           onClick={onEditDimensions}
-          className="text-xs font-medium text-gold-400 underline decoration-gold-500/40 underline-offset-2 transition-colors hover:text-gold-300"
+          className="text-xs font-medium text-gold-400 underline decoration-gold-500/40 underline-offset-2 transition-colors pointer-coarse:min-h-11 hover:text-gold-300"
         >
           Edit Dimensions
         </button>
+      </section>
+
+      <section aria-labelledby="tile-price" className="border-t border-night-700 pt-4">
+        <div className="flex items-baseline justify-between">
+          <h2 id="tile-price" className="text-xs text-sand-300/70">
+            Estimated price
+          </h2>
+          <span className="font-display text-lg text-gold-300" aria-live="polite">
+            {formatINR(estimate.total)}
+          </span>
+        </div>
+        <p className="mt-0.5 text-[11px] text-sand-300/60">
+          {estimate.tiles === 0
+            ? 'Lay some tiles to see a price.'
+            : `${estimate.tiles} ${estimate.tiles === 1 ? 'tile' : 'tiles'}${estimate.designTiles > 0 ? ' + design work' : ''} · indicative, final quote on order`}
+        </p>
       </section>
 
       <div className="space-y-2 border-t border-night-700 pt-4">

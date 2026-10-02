@@ -1,8 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CheckCircle, Circle, MagnifyingGlass, X } from '@phosphor-icons/react'
 import type { Swatch } from '../../types/swatch'
 import { groupByFamily } from '../../types/swatch'
+import type { CutType, Rotation } from '../../types/tileDesign'
+import { cutPath } from './cutShapes'
+import { patternPrefix, swatchFill, tilePatternDefs } from './renderTiles'
+import { useModalFocus } from '../../hooks/useModalFocus'
 
 type StyleBrowserOverlayProps = {
   swatches: Swatch[]
@@ -11,10 +15,35 @@ type StyleBrowserOverlayProps = {
   onAddSelected: (swatchIds: string[]) => void
 }
 
+/** The cuts a tile is most often split into, drawn from the real tile so shoppers see the result. */
+const CUT_SAMPLES: { cut: CutType; rotation: Rotation; label: string }[] = [
+  { cut: 'half', rotation: 0, label: 'Half' },
+  { cut: 'diagonal', rotation: 0, label: 'Diagonal' },
+  { cut: 'arc', rotation: 0, label: 'Arc' },
+  { cut: 'quad', rotation: 0, label: 'Quad' },
+]
+
+function CutSamples({ swatch }: { swatch: Swatch }) {
+  const prefix = patternPrefix(useId())
+  return (
+    <span className="flex gap-1" aria-hidden="true">
+      {CUT_SAMPLES.map(({ cut, rotation, label }) => (
+        <svg key={cut} viewBox="0 0 1 1" className="h-4 w-4 rounded-[2px] bg-night-950">
+          <title>{label}</title>
+          {tilePatternDefs([swatch], `${prefix}${cut}`)}
+          <path d={cutPath(cut, { x: 0, y: 0 }, rotation)} fill={swatchFill(swatch, `${prefix}${cut}`)} />
+        </svg>
+      ))}
+    </span>
+  )
+}
+
 function StyleBrowserOverlay({ swatches, categories, onClose, onAddSelected }: StyleBrowserOverlayProps) {
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [staged, setStaged] = useState<Set<string>>(new Set())
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useModalFocus(dialogRef, onClose)
 
   const bySearch = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -58,53 +87,71 @@ function StyleBrowserOverlay({ swatches, categories, onClose, onAddSelected }: S
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex flex-col bg-night-950">
-      <header className="flex items-center justify-between gap-4 border-b border-night-700 bg-night-900 px-5 py-3">
-        <div className="relative w-full max-w-sm">
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Add styles"
+      className="fixed inset-0 z-[100] flex flex-col bg-night-950"
+    >
+      {/* Phones: search takes the full first row, the actions wrap below it. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-night-700 bg-night-900 px-4 py-3 sm:flex-nowrap sm:px-5">
+        <div className="relative order-2 w-full sm:order-none sm:max-w-sm">
           <MagnifyingGlass size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sand-400" />
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search styles by name"
-            className="w-full rounded-md border border-night-600 bg-night-950 py-2 pl-9 pr-3 text-sm text-sand-100 placeholder:text-sand-300/50 focus:border-gold-500 focus:outline-none"
+            aria-label="Search styles by name"
+            data-autofocus
+            className="w-full rounded-md border border-night-600 bg-night-950 py-2 pl-9 pr-3 text-sm text-sand-100 placeholder:text-sand-300/70 focus:border-gold-500 focus:outline-none"
           />
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm font-medium text-sand-200">{staged.size} Styles Selected</span>
-          <button
-            type="button"
-            onClick={() => setStaged(new Set())}
-            disabled={staged.size === 0}
-            className="text-sm font-medium text-sand-400 transition-colors hover:text-sand-100 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Clear All
-          </button>
-          <button
-            type="button"
-            onClick={handleAddSelected}
-            disabled={staged.size === 0}
-            className="rounded-full bg-gold-500 px-4 py-2 text-sm font-semibold text-night-950 transition-colors hover:bg-gold-400 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Add Selected
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close style browser"
-            className="rounded-full bg-transparent p-1.5 text-sand-300 transition-colors hover:text-gold-400"
-          >
-            <X size={20} />
-          </button>
+        <div className="order-1 flex w-full items-center justify-between gap-3 sm:order-none sm:w-auto sm:justify-end sm:gap-4">
+          <span className="text-sm font-medium text-sand-200" aria-live="polite">
+            {staged.size} {staged.size === 1 ? 'Style' : 'Styles'} Selected
+          </span>
+          <div className="flex items-center gap-3 sm:gap-4">
+            <button
+              type="button"
+              onClick={() => setStaged(new Set())}
+              disabled={staged.size === 0}
+              className="text-sm font-medium text-sand-300 transition-colors pointer-coarse:min-h-11 hover:text-sand-100 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Clear All
+            </button>
+            <button
+              type="button"
+              onClick={handleAddSelected}
+              disabled={staged.size === 0}
+              className="whitespace-nowrap rounded-full bg-gold-500 px-4 py-2 text-sm font-semibold text-night-950 transition-colors pointer-coarse:min-h-11 hover:bg-gold-400 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Add Selected
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close style browser"
+              className="inline-flex items-center justify-center rounded-full bg-transparent p-1.5 text-sand-300 transition-colors pointer-coarse:min-h-11 pointer-coarse:min-w-11 hover:text-gold-400"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
-      </header>
+      </div>
 
-      <div className="flex min-h-0 flex-1">
-        <nav className="w-48 shrink-0 overflow-y-auto border-r border-night-700 bg-night-900 px-3 py-4">
+      {/* Phones: categories become a scrolling chip row above the grid instead of a 192px sidebar. */}
+      <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
+        <nav
+          aria-label="Style categories"
+          className="flex shrink-0 gap-2 overflow-x-auto border-b border-night-700 bg-night-900 px-4 py-2 sm:block sm:w-48 sm:overflow-y-auto sm:border-b-0 sm:border-r sm:px-3 sm:py-4"
+        >
           <button
             type="button"
             onClick={() => setActiveCategory(null)}
-            className={`mb-1 flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors ${
+            aria-pressed={activeCategory === null}
+            className={`flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-md px-3 py-2 text-left text-sm transition-colors pointer-coarse:min-h-11 sm:mb-1 sm:w-full ${
               activeCategory === null ? 'bg-gold-500 text-night-950' : 'text-sand-200 hover:bg-night-800'
             }`}
           >
@@ -116,7 +163,8 @@ function StyleBrowserOverlay({ swatches, categories, onClose, onAddSelected }: S
               key={category}
               type="button"
               onClick={() => setActiveCategory(category)}
-              className={`mb-1 flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors ${
+              aria-pressed={activeCategory === category}
+              className={`flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-md px-3 py-2 text-left text-sm transition-colors pointer-coarse:min-h-11 sm:mb-1 sm:w-full ${
                 activeCategory === category ? 'bg-gold-500 text-night-950' : 'text-sand-200 hover:bg-night-800'
               }`}
             >
@@ -126,7 +174,7 @@ function StyleBrowserOverlay({ swatches, categories, onClose, onAddSelected }: S
           ))}
         </nav>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
           {families.length === 0 ? (
             <p className="mt-10 text-center text-sm text-sand-300/70">No styles match your search.</p>
           ) : (
@@ -138,7 +186,7 @@ function StyleBrowserOverlay({ swatches, categories, onClose, onAddSelected }: S
                     <button
                       type="button"
                       onClick={() => addAllInFamily(family.variants.map((v) => v.id))}
-                      className="text-xs font-medium text-gold-400 underline decoration-gold-500/40 underline-offset-2 transition-colors hover:text-gold-300"
+                      className="text-xs font-medium text-gold-400 underline decoration-gold-500/40 underline-offset-2 transition-colors pointer-coarse:min-h-11 hover:text-gold-300"
                     >
                       Add All
                     </button>
@@ -156,7 +204,17 @@ function StyleBrowserOverlay({ swatches, categories, onClose, onAddSelected }: S
                             isStaged ? 'border-gold-500' : 'border-transparent hover:border-night-500'
                           }`}
                         >
-                          <div className="aspect-square w-full" style={{ backgroundColor: variant.swatchColor }} />
+                          {variant.imageUrl ? (
+                            <img
+                              src={variant.imageUrl}
+                              alt=""
+                              loading="lazy"
+                              className="aspect-square w-full object-cover"
+                              style={{ backgroundColor: variant.swatchColor }}
+                            />
+                          ) : (
+                            <div className="aspect-square w-full" style={{ backgroundColor: variant.swatchColor }} />
+                          )}
                           <span className="absolute right-1.5 top-1.5 rounded-full bg-night-950/80 p-0.5">
                             {isStaged ? (
                               <CheckCircle size={18} weight="fill" className="text-gold-400" />
@@ -166,6 +224,9 @@ function StyleBrowserOverlay({ swatches, categories, onClose, onAddSelected }: S
                           </span>
                           <div className="px-1.5 py-1.5">
                             <p className="truncate text-xs font-medium text-sand-200">{variant.colorName}</p>
+                            <div className="mt-1">
+                              <CutSamples swatch={variant} />
+                            </div>
                           </div>
                         </button>
                       )

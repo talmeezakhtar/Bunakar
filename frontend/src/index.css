@@ -24,7 +24,9 @@
   --color-gold-600: #b8842a;
 
   --color-sand-100: #f7efe0;
+  --color-sand-200: #eee2c9;
   --color-sand-300: #e6d5b3;
+  --color-sand-400: #ddc89c;
 }
 
 html {
@@ -69,4 +71,10 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-gold-600);
+}
+
+/* The auth form draws its own show/hide toggle - drop Edge's built-in one so there aren't two. */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
 }

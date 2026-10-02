@@ -17,6 +17,10 @@ export class Swatch {
   @Column()
   swatchColor: string;
 
+  /** Top-view photo of one physical tile; null for flat-color styles. */
+  @Column({ type: 'varchar', nullable: true })
+  imageUrl: string | null;
+
   @Column({ type: 'jsonb', default: () => "'[]'" })
   categories: string[];
 }

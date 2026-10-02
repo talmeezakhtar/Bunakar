@@ -53,7 +53,7 @@ function CanvasToolbar({
           onClick={onUndo}
           disabled={!canUndo}
           aria-label="Undo"
-          className="rounded-md p-1.5 text-sand-300 transition-colors hover:bg-night-800 hover:text-sand-100 disabled:cursor-not-allowed disabled:opacity-30"
+          className="inline-flex items-center justify-center rounded-md p-1.5 text-sand-300 pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors hover:bg-night-800 hover:text-sand-100 disabled:cursor-not-allowed disabled:opacity-30"
         >
           <ArrowCounterClockwise size={18} />
         </button>
@@ -62,7 +62,7 @@ function CanvasToolbar({
           onClick={onRedo}
           disabled={!canRedo}
           aria-label="Redo"
-          className="rounded-md p-1.5 text-sand-300 transition-colors hover:bg-night-800 hover:text-sand-100 disabled:cursor-not-allowed disabled:opacity-30"
+          className="inline-flex items-center justify-center rounded-md p-1.5 text-sand-300 pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors hover:bg-night-800 hover:text-sand-100 disabled:cursor-not-allowed disabled:opacity-30"
         >
           <ArrowClockwise size={18} />
         </button>
@@ -73,7 +73,7 @@ function CanvasToolbar({
           type="button"
           onClick={onTogglePreview}
           aria-pressed={previewMode}
-          className={`flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors ${
+          className={`flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm pointer-coarse:min-h-11 transition-colors ${
             previewMode ? 'bg-gold-500 text-night-950' : 'text-sand-300 hover:bg-night-800 hover:text-sand-100'
           }`}
         >
@@ -86,7 +86,7 @@ function CanvasToolbar({
         <select
           value={backgroundId}
           onChange={(e) => onSetBackground(e.target.value as BackgroundId)}
-          className="rounded-md border border-night-600 bg-night-950 px-2 py-1 text-sm text-sand-100 focus:border-gold-500 focus:outline-none"
+          className="rounded-md border border-night-600 bg-night-950 px-2 py-1 text-sm pointer-coarse:min-h-11 text-sand-100 focus:border-gold-500 focus:outline-none"
         >
           {BACKGROUNDS.map((bg) => (
             <option key={bg.id} value={bg.id}>
@@ -102,7 +102,7 @@ function CanvasToolbar({
           onClick={onRotateBrush}
           aria-label="Rotate tile"
           title="Rotate the active cut tile before placing it"
-          className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-sand-300 transition-colors hover:bg-night-800 hover:text-sand-100"
+          className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-sand-300 pointer-coarse:min-h-11 transition-colors hover:bg-night-800 hover:text-sand-100"
         >
           <ArrowsClockwise size={18} /> Rotate Tile
         </button>
@@ -111,7 +111,7 @@ function CanvasToolbar({
           onClick={onRotateGrid}
           aria-label="Rotate grid"
           title="Rotate the whole design 90 degrees"
-          className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-sand-300 transition-colors hover:bg-night-800 hover:text-sand-100"
+          className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-sand-300 pointer-coarse:min-h-11 transition-colors hover:bg-night-800 hover:text-sand-100"
         >
           <ArrowsCounterClockwise size={18} /> Rotate Grid
         </button>
@@ -122,7 +122,7 @@ function CanvasToolbar({
           type="button"
           onClick={onZoomOut}
           aria-label="Zoom out"
-          className="rounded-md p-1.5 text-sand-300 transition-colors hover:bg-night-800 hover:text-sand-100"
+          className="inline-flex items-center justify-center rounded-md p-1.5 text-sand-300 pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors hover:bg-night-800 hover:text-sand-100"
         >
           <MagnifyingGlassMinus size={18} />
         </button>
@@ -130,7 +130,7 @@ function CanvasToolbar({
           type="button"
           onClick={onZoomIn}
           aria-label="Zoom in"
-          className="rounded-md p-1.5 text-sand-300 transition-colors hover:bg-night-800 hover:text-sand-100"
+          className="inline-flex items-center justify-center rounded-md p-1.5 text-sand-300 pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors hover:bg-night-800 hover:text-sand-100"
         >
           <MagnifyingGlassPlus size={18} />
         </button>
@@ -139,7 +139,7 @@ function CanvasToolbar({
           type="button"
           onClick={onToggleFullscreen}
           aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
-          className="rounded-md p-1.5 text-sand-300 transition-colors hover:bg-night-800 hover:text-sand-100"
+          className="inline-flex items-center justify-center rounded-md p-1.5 text-sand-300 pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors hover:bg-night-800 hover:text-sand-100"
         >
           {isFullscreen ? <CornersIn size={18} /> : <CornersOut size={18} />}
         </button>

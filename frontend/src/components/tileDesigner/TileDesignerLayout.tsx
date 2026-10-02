@@ -1,18 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../hooks/useAuth'
+import { useBlocker, useNavigate } from 'react-router-dom'
+import { setLogoutGuard } from '../../hooks/useAuth'
+import { tileDesignsApi } from '../../services/api'
+import { useToast } from '../common/Toast'
 import type { Swatch } from '../../types/swatch'
-import type { CutType, Rotation, RugCategory, Slot, TileDesignRecord } from '../../types/tileDesign'
+import type { CutType, Rotation, RugCategory, Slot, TileDesignRecord, TileDesignState } from '../../types/tileDesign'
 import { createDefaultTileDesign, feetToTiles, recordToState, stateToRecord, tileKey } from '../../types/tileDesign'
 import { useTileDesignHistory } from '../../store/useTileDesignHistory'
+import { COLORWAYS, applyTemplate, findColorway, findTemplate } from '../../data/patternTemplates'
 import DesignerHeader from './DesignerHeader'
 import ShapePanel from './ShapePanel'
 import TileCanvas from './TileCanvas'
-import type { SelectedPiece } from './TileGridSvg'
+import type { DesignTool, NewOverlay, SelectedPiece } from './TileGridSvg'
+import { defaultPieceSize, findDesignAsset, pieceFootprint } from '../../data/designAssets'
+import { canPlaceOverlay, frameRuns } from '../../store/tileDesignReducer'
 import RightPanel from './RightPanel'
 import StyleBrowserOverlay from './StyleBrowserOverlay'
 import DimensionsModal from './DimensionsModal'
-import { deleteDesign, listMyDesigns, loadDesign, loadSwatchCatalog, saveDesign } from './tileDesignStorage'
+import UnsavedChangesDialog from './UnsavedChangesDialog'
+import { loadDesign, loadSwatchCatalog } from './tileDesignStorage'
 
 type TileDesignerLayoutProps = {
   initialShape?: string
@@ -20,6 +26,8 @@ type TileDesignerLayoutProps = {
   initialWidthFt?: number
   initialHeightFt?: number
   initialDesignId?: string
+  initialTemplateId?: string
+  initialColorwayId?: string
 }
 
 function TileDesignerLayout({
@@ -27,9 +35,11 @@ function TileDesignerLayout({
   initialWidthFt,
   initialHeightFt,
   initialDesignId,
+  initialTemplateId,
+  initialColorwayId,
 }: TileDesignerLayoutProps) {
-  const { user } = useAuth()
   const navigate = useNavigate()
+  const { showToast } = useToast()
 
   const [swatches, setSwatches] = useState<Swatch[]>([])
   const [catalogLoading, setCatalogLoading] = useState(true)
@@ -59,6 +69,29 @@ function TileDesignerLayout({
   const [dragPiece, setDragPiece] = useState<{ swatchId: string; cutType: CutType; rotation: Rotation } | null>(null)
   const dragHoverRef = useRef<{ row: number; col: number; slot: Slot | undefined } | null>(null)
   const [selectedPiece, setSelectedPiece] = useState<SelectedPiece | null>(null)
+  // Design pieces & borders: picking one switches the grid into design mode.
+  const [activeDesign, setActiveDesign] = useState<string | null>(null)
+  const [pieceSize, setPieceSize] = useState(1)
+  const [borderThickness, setBorderThickness] = useState<0.5 | 1>(0.5)
+  const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null)
+
+  // The design as last saved or opened. History keeps state objects as-is, so "unsaved" is a
+  // cheap identity check - and undoing back to the saved version counts as clean again.
+  const [savedState, setSavedState] = useState<TileDesignState>(initialDesign)
+  const dirty = state !== savedState
+  // Read by navigation/logout/unload handlers, which fire outside React's render.
+  const dirtyRef = useRef(false)
+  useEffect(() => {
+    dirtyRef.current = dirty
+  }, [dirty])
+  const [leavePrompt, setLeavePrompt] = useState<{ resolve: (ok: boolean) => void } | null>(null)
+  const [leaveStatus, setLeaveStatus] = useState<'idle' | 'saving' | 'error'>('idle')
+
+  /** Replace the canvas with a design that counts as saved (opened, saved, or fresh). */
+  function resetTo(next: TileDesignState) {
+    history.replaceAll(next)
+    setSavedState(next)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -67,29 +100,49 @@ function TileDesignerLayout({
       setSwatches(loaded)
       setUsedFallback(fallback)
       setCatalogLoading(false)
+      // A template from the setup wizard is laid down once the catalog is known, since its
+      // colors resolve to whichever swatch ids that catalog uses.
+      const template = findTemplate(initialTemplateId)
+      if (template && !initialDesignId) {
+        const colorway = findColorway(initialColorwayId ?? template.colorwayId) ?? COLORWAYS[0]
+        const next = applyTemplate(initialDesign, template, colorway, loaded)
+        resetTo(next)
+        setActiveBrush(next.myStyles[0] ?? null)
+      }
     })
     return () => {
       cancelled = true
     }
+    // Mount-only: the wizard's template is applied once, never re-applied over the user's edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
     let cancelled = false
-    listMyDesigns(!!user).then((designs) => {
-      if (!cancelled) setMyDesigns(designs)
-    })
+    tileDesignsApi
+      .mine()
+      .then((designs) => {
+        if (!cancelled) setMyDesigns(designs)
+      })
+      .catch(() => {
+        // Server unreachable - the list stays empty; saving will report the problem.
+      })
     return () => {
       cancelled = true
     }
-  }, [user])
+  }, [])
 
   // Reopen a specific saved design (e.g. returning from the room preview via "Back to Editing").
   useEffect(() => {
     if (!initialDesignId) return
     let cancelled = false
     loadDesign(initialDesignId).then((record) => {
-      if (cancelled || !record) return
-      history.replaceAll(recordToState(record))
+      if (cancelled) return
+      if (!record) {
+        showToast({ tone: 'error', message: "We couldn't open that design. It may have been deleted." })
+        return
+      }
+      resetTo(recordToState(record))
       setActiveBrush(record.myStyles[0] ?? null)
       setSelectedPiece(null)
     })
@@ -99,10 +152,35 @@ function TileDesignerLayout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDesignId])
 
+  // Unsaved work: ask before leaving via an in-app link, logging out, or closing the tab.
+  const blocker = useBlocker(() => dirtyRef.current)
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return
+    confirmLeave().then((ok) => (ok ? blocker.proceed() : blocker.reset()))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blocker.state])
+
+  useEffect(() => {
+    setLogoutGuard(confirmLeave)
+    return () => setLogoutGuard(null)
+  })
+
+  useEffect(() => {
+    // Refresh/close can't show a custom dialog - browsers only allow their own prompt.
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      if (dirtyRef.current) e.preventDefault()
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [])
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       const isMod = e.ctrlKey || e.metaKey
       if (!isMod) return
+      // Typing in a field (renaming, custom sizes) keeps the browser's own text undo.
+      const target = e.target as HTMLElement | null
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return
       if (e.key.toLowerCase() === 'z' && !e.shiftKey) {
         e.preventDefault()
         handleUndo()
@@ -202,6 +280,84 @@ function TileDesignerLayout({
     history.commit({ type: 'REMOVE_COL_LEFT' })
   }
 
+  const designAsset = findDesignAsset(activeDesign)
+  // Largest piece size (tiles tall) whose footprint - turned with the brush - still fits the rug.
+  const sideways = activeRotation === 90 || activeRotation === 270
+  let maxPieceSize = 1
+  if (designAsset?.kind === 'piece') {
+    for (let size = 1; size <= Math.max(state.widthTiles, state.heightTiles); size++) {
+      const fp = pieceFootprint(designAsset, size)
+      const [w, h] = sideways ? [fp.heightTiles, fp.widthTiles] : [fp.widthTiles, fp.heightTiles]
+      if (w > state.widthTiles || h > state.heightTiles) break
+      maxPieceSize = size
+    }
+  }
+  let designTool: DesignTool | null = null
+  if (designAsset) {
+    const fp = pieceFootprint(designAsset, Math.min(pieceSize, maxPieceSize))
+    designTool = {
+      assetId: designAsset.id,
+      kind: designAsset.kind,
+      widthTiles: sideways ? fp.heightTiles : fp.widthTiles,
+      heightTiles: sideways ? fp.widthTiles : fp.heightTiles,
+      rotation: activeRotation,
+      thickness: borderThickness,
+    }
+  }
+  // A selection outlives its design when undo/resize/delete-under removes it - just drop it.
+  const liveSelectedOverlayId = state.overlays.some((o) => o.id === selectedOverlayId) ? selectedOverlayId : null
+
+  function newOverlayId() {
+    return `o${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+  }
+
+  function handleSelectDesign(id: string | null) {
+    setActiveDesign(id)
+    setSelectedPiece(null)
+    const asset = findDesignAsset(id)
+    if (asset?.kind === 'piece') setPieceSize(defaultPieceSize(asset))
+  }
+
+  function handleSelectBrush(id: string) {
+    setActiveBrush(id)
+    setActiveDesign(null)
+  }
+
+  function handleSelectOverlay(id: string | null) {
+    setSelectedOverlayId(id)
+    if (id) setSelectedPiece(null)
+  }
+
+  function handlePlaceOverlay(overlay: NewOverlay) {
+    if (!canPlaceOverlay(state, overlay)) {
+      showToast({ tone: 'info', message: 'Designs sit on tiles. Lay tiles under the whole highlighted area first.' })
+      return
+    }
+    history.commit({ type: 'PLACE_OVERLAY', overlay: { ...overlay, id: newOverlayId() } })
+  }
+
+  function handleFrame() {
+    if (designAsset?.kind !== 'border') return
+    const idPrefix = newOverlayId()
+    if (!frameRuns(state, designAsset.id, borderThickness, idPrefix).every((run) => canPlaceOverlay(state, run))) {
+      showToast({ tone: 'info', message: 'Lay tiles all the way around the edge of the rug first, then frame it.' })
+      return
+    }
+    history.commit({ type: 'FRAME_BORDER', assetId: designAsset.id, thickness: borderThickness, idPrefix })
+  }
+
+  function handleReplaceOverlay() {
+    if (!liveSelectedOverlayId || !designAsset) return
+    history.commit({ type: 'REPLACE_OVERLAY_ASSET', id: liveSelectedOverlayId, assetId: designAsset.id })
+    setSelectedOverlayId(null)
+  }
+
+  function handleRemoveOverlay() {
+    if (!liveSelectedOverlayId) return
+    history.commit({ type: 'REMOVE_OVERLAY', id: liveSelectedOverlayId })
+    setSelectedOverlayId(null)
+  }
+
   function handleSelectPiece(row: number, col: number, index: number) {
     setSelectedPiece({ row, col, index })
   }
@@ -236,6 +392,7 @@ function TileDesignerLayout({
 
   function handleStartDrag(swatchId: string) {
     setActiveBrush(swatchId)
+    setActiveDesign(null)
     dragHoverRef.current = null
     setDragPiece({ swatchId, cutType: activeCut, rotation: activeRotation })
   }
@@ -251,8 +408,11 @@ function TileDesignerLayout({
   }
 
   async function persistDesign(): Promise<TileDesignRecord> {
-    const saved = await saveDesign(stateToRecord(state), state.id, !!user)
-    history.replaceAll(recordToState(saved))
+    const record = stateToRecord(state)
+    const saved = state.id ? await tileDesignsApi.update(state.id, record) : await tileDesignsApi.create(record)
+    resetTo(recordToState(saved))
+    // Now, not after the re-render: "Continue" navigates straight away and must not be blocked.
+    dirtyRef.current = false
     setMyDesigns((prev) => {
       const exists = prev.some((d) => d.id === saved.id)
       return exists ? prev.map((d) => (d.id === saved.id ? saved : d)) : [...prev, saved]
@@ -260,14 +420,24 @@ function TileDesignerLayout({
     return saved
   }
 
+  /** Save failures always surface - the header Save button has no inline error of its own. */
+  function reportSaveError(err: unknown) {
+    setSaveStatus('error')
+    showToast({
+      tone: 'error',
+      message: err instanceof Error ? `Couldn't save your design. ${err.message}` : "Couldn't save your design.",
+    })
+  }
+
   async function persist() {
     setSaveStatus('saving')
     try {
       await persistDesign()
       setSaveStatus('saved')
+      showToast({ tone: 'success', message: 'Design saved.', durationMs: 2500 })
       setTimeout(() => setSaveStatus('idle'), 2000)
-    } catch {
-      setSaveStatus('error')
+    } catch (err) {
+      reportSaveError(err)
     }
   }
 
@@ -277,31 +447,63 @@ function TileDesignerLayout({
       const saved = await persistDesign()
       setSaveStatus('idle')
       navigate(`/designer/preview?design=${saved.id}`)
-    } catch {
-      setSaveStatus('error')
+    } catch (err) {
+      reportSaveError(err)
     }
   }
 
   async function handleDelete() {
     if (!state.id) return
     if (!window.confirm(`Delete "${state.name}"? This can't be undone.`)) return
-    await deleteDesign(state.id, !!user)
+    try {
+      await tileDesignsApi.remove(state.id)
+    } catch (err) {
+      showToast({
+        tone: 'error',
+        message: err instanceof Error ? `Couldn't delete this design. ${err.message}` : "Couldn't delete this design.",
+      })
+      return
+    }
     setMyDesigns((prev) => prev.filter((d) => d.id !== state.id))
-    history.replaceAll(createDefaultTileDesign())
+    resetTo(createDefaultTileDesign())
     setActiveBrush(null)
     setSelectedPiece(null)
   }
 
-  function handleNew() {
-    history.replaceAll(createDefaultTileDesign())
+  /** Resolves true once it's fine to drop the current canvas - saved, discarded, or clean. */
+  function confirmLeave(): Promise<boolean> {
+    if (!dirtyRef.current) return Promise.resolve(true)
+    setLeaveStatus('idle')
+    return new Promise((resolve) => setLeavePrompt({ resolve }))
+  }
+
+  function closeLeavePrompt(ok: boolean) {
+    if (ok) dirtyRef.current = false
+    leavePrompt?.resolve(ok)
+    setLeavePrompt(null)
+  }
+
+  async function handleLeaveSave() {
+    setLeaveStatus('saving')
+    try {
+      await persistDesign()
+      closeLeavePrompt(true)
+    } catch {
+      setLeaveStatus('error')
+    }
+  }
+
+  async function handleNew() {
+    if (!(await confirmLeave())) return
+    resetTo(createDefaultTileDesign())
     setActiveBrush(null)
     setSelectedPiece(null)
   }
 
-  function handleLoad(id: string) {
+  async function handleLoad(id: string) {
     const record = myDesigns.find((d) => d.id === id)
-    if (!record) return
-    history.replaceAll(recordToState(record))
+    if (!record || !(await confirmLeave())) return
+    resetTo(recordToState(record))
     setActiveBrush(record.myStyles[0] ?? null)
     setSelectedPiece(null)
   }
@@ -366,6 +568,12 @@ function TileDesignerLayout({
           onReplaceSelected={handleReplaceSelected}
           onDeleteSelected={handleDeleteSelected}
           onDeselectPiece={handleDeselectPiece}
+          designTool={designTool}
+          selectedOverlayId={liveSelectedOverlayId}
+          onSelectOverlay={handleSelectOverlay}
+          onPlaceOverlay={handlePlaceOverlay}
+          onReplaceOverlay={handleReplaceOverlay}
+          onRemoveOverlay={handleRemoveOverlay}
         />
 
         <RightPanel
@@ -374,13 +582,23 @@ function TileDesignerLayout({
           activeBrush={activeBrush}
           activeCut={activeCut}
           activeRotation={activeRotation}
-          onSelectBrush={setActiveBrush}
+          onSelectBrush={handleSelectBrush}
           onRemoveStyle={handleRemoveStyle}
           onAddMoreStyles={() => setStyleBrowserOpen(true)}
           onEditDimensions={() => setDimensionsOpen(true)}
           onContinue={handleContinue}
           saveStatus={saveStatus}
           onStartDrag={handleStartDrag}
+          designs={{
+            activeDesignId: activeDesign,
+            onSelectDesign: handleSelectDesign,
+            pieceSize: Math.min(pieceSize, maxPieceSize),
+            maxPieceSize,
+            onPieceSizeChange: setPieceSize,
+            borderThickness,
+            onBorderThicknessChange: setBorderThickness,
+            onFrame: handleFrame,
+          }}
         />
       </div>
 
@@ -400,6 +618,17 @@ function TileDesignerLayout({
           rugCategory={state.rugCategory}
           onClose={() => setDimensionsOpen(false)}
           onSave={handleSaveDimensions}
+        />
+      )}
+
+      {leavePrompt && (
+        <UnsavedChangesDialog
+          designName={state.name}
+          saving={leaveStatus === 'saving'}
+          error={leaveStatus === 'error'}
+          onSave={handleLeaveSave}
+          onDiscard={() => closeLeavePrompt(true)}
+          onCancel={() => closeLeavePrompt(false)}
         />
       )}
     </div>

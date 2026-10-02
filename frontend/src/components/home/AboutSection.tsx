@@ -1,10 +1,8 @@
-import { EnvelopeSimple, InstagramLogo } from '@phosphor-icons/react'
+import { GithubLogo } from '@phosphor-icons/react'
 import { motion, useReducedMotion } from 'motion/react'
 import { HeritageSwatch } from './RugSwatches'
 
-const CONTACT_EMAIL = 'hello@bunakar.in'
-const INSTAGRAM_HANDLE = '@bunakar.rugs'
-const INSTAGRAM_URL = 'https://instagram.com/bunakar.rugs'
+const REPO_URL = 'https://github.com/talmeezakhtar/Bunakar'
 
 function AboutSection() {
   const reduce = useReducedMotion()
@@ -28,26 +26,19 @@ function AboutSection() {
             interactive design tool.
           </p>
           <p className="mt-4 leading-relaxed text-sand-300/80">
-            Choose a shape, pattern, border and material, and watch a real weaving tradition
-            take the shape you imagine, with a live preview and instant price estimate.
+            Choose a pattern, colors and size, and watch a real weaving tradition take the
+            shape you imagine, then see your rug in a real room before it&apos;s woven.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
             <a
-              href={INSTAGRAM_URL}
+              href={REPO_URL}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-2 rounded-full border border-night-600 px-4 py-2.5 text-sm font-medium text-sand-100 transition-colors hover:border-gold-500/60 hover:text-gold-400"
             >
-              <InstagramLogo size={18} weight="regular" />
-              {INSTAGRAM_HANDLE}
-            </a>
-            <a
-              href={`mailto:${CONTACT_EMAIL}`}
-              className="inline-flex items-center gap-2 rounded-full border border-night-600 px-4 py-2.5 text-sm font-medium text-sand-100 transition-colors hover:border-gold-500/60 hover:text-gold-400"
-            >
-              <EnvelopeSimple size={18} weight="regular" />
-              {CONTACT_EMAIL}
+              <GithubLogo size={18} weight="regular" />
+              View the source on GitHub
             </a>
           </div>
         </motion.div>

@@ -87,26 +87,3 @@ export function homographyToCssMatrix3d(t: Mat3): string {
   ]
   return `matrix3d(${m.join(',')})`
 }
-
-function invert3x3(m: Mat3): Mat3 {
-  const adj = adjugate(m)
-  // det(m) = m00*C00 + m01*C01 + m02*C02, using the adjugate's first row (cofactors of column 0)
-  const det = m[0] * adj[0] + m[1] * adj[3] + m[2] * adj[6]
-  const inv = adj.map((v) => v / det)
-  // adjugate() returns the transpose-of-cofactor layout already consistent with row-major adj/det here
-  return inv
-}
-
-/** Apply a row-major 3x3 homography to a point, returning the projected (x, y). */
-export function applyHomography(t: Mat3, x: number, y: number): Point {
-  const w = t[6] * x + t[7] * y + t[8]
-  return {
-    x: (t[0] * x + t[1] * y + t[2]) / w,
-    y: (t[3] * x + t[4] * y + t[5]) / w,
-  }
-}
-
-/** The inverse homography, mapping destination pixel coordinates back to source (0..w, 0..h). */
-export function invertHomography(t: Mat3): Mat3 {
-  return invert3x3(t)
-}

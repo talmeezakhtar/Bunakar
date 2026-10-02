@@ -1,10 +1,25 @@
+import type { CSSProperties } from 'react'
+
 export interface Swatch {
   id: string
   familyId: string
   familyName: string
   colorName: string
   swatchColor: string
+  /** Top-view photo of one physical tile; absent for flat-color styles. */
+  imageUrl?: string
   categories: string[]
+}
+
+/** CSS background for an HTML chip/card: the tile photo, over its average color while it loads. */
+export function swatchBackground(swatch: Swatch | undefined): CSSProperties {
+  if (!swatch) return { backgroundColor: '#999' }
+  return {
+    backgroundColor: swatch.swatchColor,
+    backgroundImage: swatch.imageUrl ? `url(${swatch.imageUrl})` : undefined,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+  }
 }
 
 export interface SwatchFamily {

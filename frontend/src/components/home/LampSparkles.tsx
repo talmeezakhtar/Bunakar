@@ -21,7 +21,8 @@ function LampSparkles({ active }: LampSparklesProps) {
   if (reduce) return null
 
   return (
-    <div className="pointer-events-none absolute left-1/2 top-[18%] h-0 w-0">
+    // Burst from the spout tip (same anchor as LampSmoke), where the genie emerges.
+    <div className="pointer-events-none absolute left-[96%] top-[28%] z-20 h-0 w-0">
       {POINTS.map((point, i) => (
         <motion.span
           key={i}
@@ -33,7 +34,12 @@ function LampSparkles({ active }: LampSparklesProps) {
               ? { opacity: [0, 1, 0], scale: [0.2, 1, 0.4], rotate: [0, 90] }
               : { opacity: 0, scale: 0 }
           }
-          transition={{ duration: 0.65, delay: point.delay, ease: 'easeOut' }}
+          transition={{
+            duration: 0.65,
+            // Offset to flash as the genie forms (CreateDesignSection's REVEAL_TIMING.genie).
+            delay: 0.45 + point.delay,
+            ease: 'easeOut',
+          }}
         >
           <Sparkle size={point.size} weight="fill" />
         </motion.span>

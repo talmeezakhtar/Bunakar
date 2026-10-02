@@ -16,7 +16,8 @@ import { User } from './entities/user.entity';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET') ?? 'dev-secret',
+        // No fallback: a missing secret must stop the server, not sign tokens with a guessable key.
+        secret: config.getOrThrow<string>('JWT_SECRET'),
         signOptions: { expiresIn: '7d' },
       }),
     }),

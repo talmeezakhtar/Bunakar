@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TileDesign } from './entities/tile-design.entity';
@@ -17,25 +17,34 @@ export class TileDesignsService {
   }
 
   findAllForUser(userId: string) {
-    return this.tileDesigns.find({ where: { userId }, order: { updatedAt: 'DESC' } });
+    return this.tileDesigns.find({
+      where: { userId },
+      order: { updatedAt: 'DESC' },
+    });
   }
 
-  async findOne(id: string) {
-    const design = await this.tileDesigns.findOne({ where: { id } });
+  /** Another user's design is reported as missing, so ids don't reveal what exists. */
+  async findOne(id: string, userId: string) {
+    const design = await this.tileDesigns.findOne({ where: { id, userId } });
     if (!design) throw new NotFoundException(`Design ${id} not found`);
     return design;
   }
 
+  /** Read-only view for shared preview links: anyone with the (unguessable) id may look,
+   * without learning who owns it. Editing still goes through the owner-only routes. */
+  async findPublic(id: string) {
+    const design = await this.tileDesigns.findOne({ where: { id } });
+    if (!design) throw new NotFoundException(`Design ${id} not found`);
+    return { ...design, userId: undefined };
+  }
+
   async update(id: string, userId: string, dto: UpdateTileDesignDto) {
-    const design = await this.findOne(id);
-    if (design.userId !== userId) throw new ForbiddenException();
+    const design = await this.findOne(id, userId);
     Object.assign(design, dto);
     return this.tileDesigns.save(design);
   }
 
   async remove(id: string, userId: string) {
-    const design = await this.findOne(id);
-    if (design.userId !== userId) throw new ForbiddenException();
-    await this.tileDesigns.remove(design);
+    await this.tileDesigns.remove(await this.findOne(id, userId));
   }
 }

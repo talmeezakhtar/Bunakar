@@ -8,21 +8,27 @@ function Navbar() {
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
   const isHome = pathname === '/'
-  const isDesigner = pathname.startsWith('/designer')
+  const isDesigner = pathname.startsWith('/designer') || pathname.startsWith('/freeform')
+  const isMyDesigns = pathname === '/my-designs'
 
   const authLink = user ? (
     <button
       type="button"
       onClick={() => {
-        logout()
         setOpen(false)
+        void logout()
       }}
       className="text-left transition-colors hover:text-gold-400"
     >
       Log out ({user.name})
     </button>
   ) : (
-    <Link to="/login" className="transition-colors hover:text-gold-400" onClick={() => setOpen(false)}>
+    <Link
+      to="/login"
+      state={{ from: pathname }}
+      className="transition-colors hover:text-gold-400"
+      onClick={() => setOpen(false)}
+    >
       Log in
     </Link>
   )
@@ -33,7 +39,7 @@ function Navbar() {
         isHome ? 'border-white/10 bg-transparent' : 'border-night-700 bg-night-950/95 backdrop-blur'
       }`}
     >
-      <nav className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
+      <nav aria-label="Main" className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
         <Link
           to="/"
           className="font-logo text-2xl tracking-wide text-sand-100"
@@ -49,6 +55,16 @@ function Navbar() {
           <Link to="/#about-us" className="transition-colors hover:text-gold-400">
             About Us
           </Link>
+          {/* Only an account has saved designs to show. */}
+          {user && (
+            <Link
+              to="/my-designs"
+              aria-current={isMyDesigns ? 'page' : undefined}
+              className={`transition-colors hover:text-gold-400 ${isMyDesigns ? 'text-gold-400' : ''}`}
+            >
+              My Designs
+            </Link>
+          )}
           {authLink}
         </div>
 
@@ -57,7 +73,7 @@ function Navbar() {
           onClick={() => setOpen((v) => !v)}
           aria-label={open ? 'Close menu' : 'Open menu'}
           aria-expanded={open}
-          className="bg-transparent text-sand-100 sm:hidden"
+          className="-mr-2.5 flex h-11 w-11 items-center justify-center bg-transparent text-sand-100 sm:hidden"
         >
           {open ? <X size={22} /> : <List size={22} />}
         </button>
@@ -75,6 +91,17 @@ function Navbar() {
           <Link to="/#about-us" className="hover:text-gold-400" onClick={() => setOpen(false)}>
             About Us
           </Link>
+          {/* Only an account has saved designs to show. */}
+          {user && (
+            <Link
+              to="/my-designs"
+              aria-current={isMyDesigns ? 'page' : undefined}
+              className={`hover:text-gold-400 ${isMyDesigns ? 'text-gold-400' : ''}`}
+              onClick={() => setOpen(false)}
+            >
+              My Designs
+            </Link>
+          )}
           {authLink}
         </div>
       )}

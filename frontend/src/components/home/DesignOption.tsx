@@ -22,7 +22,8 @@ function DesignOption({ eyebrow, title, description, wishLabel, visual, index, o
         type: 'spring',
         stiffness: 210,
         damping: 22,
-        delay: reduce ? 0 : 0.55 + index * 0.16,
+        // After the genie has formed - the wishes are what he grants, not a simultaneous burst.
+        delay: reduce ? 0 : 0.95 + index * 0.14,
       }}
       className="flex flex-col gap-5 rounded-2xl border border-night-600 bg-night-800 p-5 sm:flex-row sm:gap-6"
     >

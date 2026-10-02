@@ -3,13 +3,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { DesignsModule } from './designs/designs.module';
-import { PatternsModule } from './patterns/patterns.module';
-import { ColorsModule } from './colors/colors.module';
-import { MaterialsModule } from './materials/materials.module';
 import { AuthModule } from './auth/auth.module';
 import { SwatchesModule } from './swatches/swatches.module';
 import { TileDesignsModule } from './tile-designs/tile-designs.module';
+import { FreeformDesignsModule } from './freeform-designs/freeform-designs.module';
 
 @Module({
   imports: [
@@ -20,16 +17,20 @@ import { TileDesignsModule } from './tile-designs/tile-designs.module';
         type: 'postgres',
         url: config.get<string>('DATABASE_URL'),
         autoLoadEntities: true,
-        synchronize: config.get<string>('NODE_ENV') !== 'production',
+        // Creates/updates tables from the entities. On by default outside production; in
+        // production it must be switched on explicitly (DB_SYNCHRONIZE=true) - without it and
+        // with no migrations, a fresh database has no tables and the app fails on boot.
+        // ponytail: schema sync instead of migrations - add TypeORM migrations before real data
+        // lives in production, since sync can drop columns when an entity changes.
+        synchronize:
+          config.get<string>('NODE_ENV') !== 'production' ||
+          config.get<string>('DB_SYNCHRONIZE') === 'true',
       }),
     }),
-    DesignsModule,
-    PatternsModule,
-    ColorsModule,
-    MaterialsModule,
     AuthModule,
     SwatchesModule,
     TileDesignsModule,
+    FreeformDesignsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { Trash, Plus } from '@phosphor-icons/react'
 import type { Swatch } from '../../types/swatch'
+import { swatchBackground } from '../../types/swatch'
 
 const DRAG_THRESHOLD_PX = 6
 
@@ -13,7 +14,11 @@ type MyStylesPanelProps = {
   onRemove: (id: string) => void
   onAddMore: () => void
   onStartDrag: (id: string) => void
+  /** How to use the chips here; the tile designer's grid wording is the default. */
+  hint?: string
 }
+
+const GRID_HINT = 'Click a style to select it, or drag it onto the grid to place it.'
 
 function StyleChip({
   swatch,
@@ -21,7 +26,9 @@ function StyleChip({
   onSelectBrush,
   onRemove,
   onStartDrag,
+  hint,
 }: {
+  hint: string
   swatch: Swatch
   active: boolean
   onSelectBrush: () => void
@@ -64,11 +71,11 @@ function StyleChip({
           active ? 'border-gold-500 bg-night-800' : 'border-night-700 bg-night-900 hover:border-night-500'
         }`}
         aria-pressed={active}
-        title={`${swatch.familyName} - ${swatch.colorName} (click to select, drag onto the grid to place)`}
+        title={`${swatch.familyName} - ${swatch.colorName}. ${hint}`}
       >
         <span
           className="h-12 w-full shrink-0 rounded-sm border border-black/20"
-          style={{ backgroundColor: swatch.swatchColor }}
+          style={swatchBackground(swatch)}
         />
         <span className="w-full truncate text-center text-[11px] text-sand-300">{swatch.colorName}</span>
       </button>
@@ -76,7 +83,7 @@ function StyleChip({
         type="button"
         onClick={onRemove}
         aria-label={`Remove ${swatch.colorName}`}
-        className="absolute -right-1.5 -top-1.5 rounded-full border border-night-600 bg-night-900 p-0.5 text-sand-400 opacity-0 shadow-sm transition-opacity hover:text-red-400 group-hover:opacity-100"
+        className="absolute -right-1.5 -top-1.5 rounded-full border border-night-600 bg-night-900 p-0.5 text-sand-400 opacity-0 shadow-sm transition-opacity hover:text-red-400 focus-visible:opacity-100 group-hover:opacity-100 pointer-coarse:-right-2.5 pointer-coarse:-top-2.5 pointer-coarse:p-1.5 pointer-coarse:opacity-100"
       >
         <Trash size={12} />
       </button>
@@ -92,6 +99,7 @@ function MyStylesPanel({
   onRemove,
   onAddMore,
   onStartDrag,
+  hint = GRID_HINT,
 }: MyStylesPanelProps) {
   return (
     <section aria-labelledby="my-styles-heading" className="space-y-3">
@@ -102,7 +110,7 @@ function MyStylesPanel({
         <button
           type="button"
           onClick={onAddMore}
-          className="inline-flex items-center gap-1 text-xs font-medium text-gold-400 transition-colors hover:text-gold-300"
+          className="inline-flex items-center gap-1 text-xs font-medium text-gold-400 transition-colors pointer-coarse:min-h-11 hover:text-gold-300"
         >
           <Plus size={13} /> Add More
         </button>
@@ -114,7 +122,7 @@ function MyStylesPanel({
         </p>
       ) : (
         <>
-          <p className="text-xs text-sand-300/70">Click a style to select it, or drag it onto the grid to place it.</p>
+          <p className="text-xs text-sand-300/70">{hint}</p>
           <ul className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-4">
             {myStyles.map((id) => {
               const swatch = swatchesById.get(id)
@@ -127,6 +135,7 @@ function MyStylesPanel({
                     onSelectBrush={() => onSelectBrush(id)}
                     onRemove={() => onRemove(id)}
                     onStartDrag={() => onStartDrag(id)}
+                    hint={hint}
                   />
                 </li>
               )

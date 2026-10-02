@@ -1,11 +1,12 @@
 import type { RugCategory } from '../types/tileDesign'
 import type { Quad } from '../utils/perspective'
-import areaImg1 from '../assests/Area_Rugs_topview.png'
-import areaImg2 from '../assests/Area_Rugs_topview_img2.png'
-import runnerImg1 from '../assests/Runners_rugs_toview_img1.png'
-import runnerImg2 from '../assests/Runners_rugs_toview_img2.png'
-import wallImg1 from '../assests/WallToWall_rugs_img1.png'
-import wallImg2 from '../assests/WallToWall_rugs_img2.png'
+import areaImg1 from '../assets/rooms/Area_Rugs_topview.webp'
+import areaImg2 from '../assets/rooms/Area_Rugs_topview_img2.webp'
+import areaImg3 from '../assets/rooms/Area_Rugs_topview_img3.webp'
+import runnerImg1 from '../assets/rooms/Runners_rugs_toview_img1.webp'
+import runnerImg2 from '../assets/rooms/Runners_rugs_toview_img2.webp'
+import wallImg1 from '../assets/rooms/WallToWall_rugs_img1.webp'
+import wallImg2 from '../assets/rooms/WallToWall_rugs_img2.webp'
 
 export interface RoomPhoto {
   id: string
@@ -52,6 +53,21 @@ export const ROOM_PHOTOS: RoomPhoto[] = [
       topRight: { x: 0.705, y: 0.24 },
       bottomRight: { x: 0.705, y: 0.76 },
       bottomLeft: { x: 0.29, y: 0.76 },
+    },
+  },
+  {
+    // Portrait rug (edges measured from the photo's pixels), so it suits 8' x 10'-style area rugs.
+    id: 'area-3',
+    src: areaImg3,
+    width: 736,
+    height: 736,
+    category: 'area',
+    label: 'Living Room, Marble Floor',
+    corners: {
+      topLeft: { x: 0.246, y: 0.082 },
+      topRight: { x: 0.879, y: 0.082 },
+      bottomRight: { x: 0.879, y: 0.955 },
+      bottomLeft: { x: 0.246, y: 0.955 },
     },
   },
   {
@@ -112,7 +128,7 @@ export const ROOM_PHOTOS: RoomPhoto[] = [
   },
 ]
 
-/** The two photos matching the design's own rug type - area rug designs only preview in area-rug
+/** The photos matching the design's own rug type - area rug designs only preview in area-rug
  * rooms, runners only in hallway runners, and so on. */
 export function roomPhotosForDesign(category: RugCategory): RoomPhoto[] {
   return ROOM_PHOTOS.filter((p) => p.category === category)

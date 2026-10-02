@@ -55,9 +55,9 @@ export const CUT_TYPES: { id: CutType; label: string }[] = [
   { id: 'arc-remnant', label: 'Arc Remnant' },
 ]
 
-/** Sub-cell grid index for cuts that divide a tile into a grid/strip (quad, third, quarter,
- * ninth, sixteenth) - which slot of that grid the piece occupies. Unused (and omitted) for
- * fixed-orientation cuts (full, half, diagonal, arc, arc-remnant), which use `rotation` instead. */
+/** Sub-cell grid index for cuts that divide a tile into a grid/strip (quad, half, third,
+ * quarter, ninth, sixteenth) - which slot of that grid the piece occupies. Unused (and omitted)
+ * for fixed-orientation cuts (full, diagonal, arc, arc-remnant), which use `rotation` instead. */
 export interface Slot {
   x: number
   y: number
@@ -68,6 +68,29 @@ export interface TileCell {
   cutType: CutType
   rotation: Rotation
   slot?: Slot
+}
+
+/**
+ * A design piece (medallion, motif) or a border run laid on top of the painted tiles. It covers
+ * a rectangle of whole tiles, may only sit where every covered cell already has a tile, and
+ * never stacks on another overlay - placing one replaces whatever it overlaps.
+ */
+export interface DesignOverlay {
+  id: string
+  assetId: string
+  row: number
+  col: number
+  /** Footprint in tiles, after rotation (a vertical border run is 1 wide). */
+  widthTiles: number
+  heightTiles: number
+  /** Pieces spin in place. Borders: which edge of the footprint the strip's outer edge faces
+   * (0 top, 90 right, 180 bottom, 270 left) - a frame's strips all face outward. */
+  rotation: Rotation
+  /** Borders only: strip thickness in tiles, hugging the outer edge. */
+  thickness?: 0.5 | 1
+  /** Borders only: how far the strip is drawn past each end of its footprint, so a thin
+   * frame's side runs meet the top and bottom strips instead of leaving a corner gap. */
+  reach?: number
 }
 
 export interface TileDesignState {
@@ -88,6 +111,8 @@ export interface TileDesignState {
   tiles: Record<string, TileCell[]>
   /** swatch ids added to this design's palette, in the order they were added */
   myStyles: string[]
+  /** Design pieces and borders over the tiles, in placement order. */
+  overlays: DesignOverlay[]
 }
 
 export function tileKey(row: number, col: number): string {
@@ -105,11 +130,17 @@ export function createDefaultTileDesign(widthTiles = 4, heightTiles = 5): TileDe
     rugCategory: classifyRugCategory(widthTiles, heightTiles),
     tiles: {},
     myStyles: [],
+    overlays: [],
   }
 }
 
+/** Largest rug side, in tiles - matches the backend's @Max(200) on widthTiles/heightTiles, and
+ * keeps the SVG grid (one node per cell) small enough not to freeze the tab. */
+export const MAX_TILES_PER_SIDE = 200
+export const MAX_RUG_FT = MAX_TILES_PER_SIDE * TILE_SIZE_FT
+
 export function feetToTiles(ft: number): number {
-  return Math.max(1, Math.round(ft / TILE_SIZE_FT))
+  return Math.min(MAX_TILES_PER_SIDE, Math.max(1, Math.round(ft / TILE_SIZE_FT)))
 }
 
 export function tilesToFeet(tiles: number): number {
@@ -145,6 +176,8 @@ export interface TileDesignRecord {
   rugCategory?: RugCategory
   tiles: { row: number; col: number; swatchId: string; cutType: CutType; rotation: Rotation; slot?: Slot }[]
   myStyles: string[]
+  /** Optional for designs saved before design pieces existed. */
+  overlays?: DesignOverlay[]
   updatedAt?: string
 }
 
@@ -161,14 +194,29 @@ export function stateToRecord(state: TileDesignState): Omit<TileDesignRecord, 'i
       return pieces.map((piece) => ({ row, col, ...piece }))
     }),
     myStyles: state.myStyles,
+    overlays: state.overlays,
   }
+}
+
+/** Halves saved before they became slot-based pointed their side by rotation alone (0 = left,
+ * 90 = top, 180 = right, 270 = bottom); this is the slot that keeps each on the same side. */
+const LEGACY_HALF_SLOT: Record<Rotation, Slot> = {
+  0: { x: 0, y: 0 },
+  90: { x: 0, y: 0 },
+  180: { x: 1, y: 0 },
+  270: { x: 0, y: 1 },
 }
 
 export function recordToState(record: TileDesignRecord): TileDesignState {
   const tiles: Record<string, TileCell[]> = {}
   for (const t of record.tiles) {
     const key = tileKey(t.row, t.col)
-    const piece: TileCell = { swatchId: t.swatchId, cutType: t.cutType, rotation: t.rotation, slot: t.slot }
+    const piece: TileCell = {
+      swatchId: t.swatchId,
+      cutType: t.cutType,
+      rotation: t.rotation,
+      slot: t.slot ?? (t.cutType === 'half' ? LEGACY_HALF_SLOT[t.rotation] : undefined),
+    }
     ;(tiles[key] ??= []).push(piece)
   }
   return {
@@ -181,5 +229,6 @@ export function recordToState(record: TileDesignRecord): TileDesignState {
     rugCategory: record.rugCategory ?? classifyRugCategory(record.widthTiles, record.heightTiles),
     tiles,
     myStyles: record.myStyles,
+    overlays: record.overlays ?? [],
   }
 }

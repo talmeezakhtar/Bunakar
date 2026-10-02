@@ -1,10 +1,11 @@
+# Secrets come from a .env file next to this one (see .env.example) - never hardcoded here.
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: bunakar
     ports:
       - '5432:5432'
@@ -20,10 +21,13 @@ services:
     build: ./backend
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/bunakar
-      JWT_SECRET: change-me-in-production
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/bunakar
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       PORT: 3000
       NODE_ENV: production
+      # No migrations yet, so let TypeORM create the tables (see app.module.ts).
+      DB_SYNCHRONIZE: 'true'
+      CORS_ORIGIN: http://localhost:5173
     ports:
       - '3000:3000'
     depends_on:

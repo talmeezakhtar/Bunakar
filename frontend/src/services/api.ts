@@ -1,40 +1,49 @@
-import type { Color, Material, Pattern, PileType } from '../types/catalog'
-import type { Design } from '../types/design'
 import type { Swatch } from '../types/swatch'
 import type { TileDesignRecord } from '../types/tileDesign'
+import type { FreeformDesignRecord } from '../types/freeform'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
+export const TOKEN_KEY = 'bunakar_token'
+
+let onUnauthorized: () => void = () => {}
+/** Registered by the auth session, which owns what "logged out" means. */
+export function setUnauthorizedHandler(handler: () => void) {
+  onUnauthorized = handler
+}
+
 function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('bunakar_token')
+  let token: string | null = null
+  try {
+    token = localStorage.getItem(TOKEN_KEY)
+  } catch {
+    // Storage blocked - send the request unauthenticated.
+  }
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    ...options,
-  })
-  if (!res.ok) {
-    const body = await res.json().catch(() => null)
-    throw new Error(body?.message ?? `Request to ${path} failed with status ${res.status}`)
+  const headers = authHeaders()
+  let res: Response
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      headers: { 'Content-Type': 'application/json', ...headers },
+      ...options,
+    })
+  } catch {
+    throw new Error("Can't reach the server. Check your connection and try again.")
   }
-  return res.json() as Promise<T>
-}
-
-export const catalogApi = {
-  colors: () => request<Color[]>('/colors'),
-  patterns: () => request<Pattern[]>('/patterns'),
-  materials: () => request<Material[]>('/materials'),
-  pileTypes: () => request<PileType[]>('/pile-types'),
-}
-
-export const designsApi = {
-  create: (design: Design) =>
-    request<Design>('/designs', { method: 'POST', body: JSON.stringify(design) }),
-  mine: () => request<Design[]>('/designs'),
-  get: (id: string) => request<Design>(`/designs/${id}`),
-  pdfUrl: (id: string) => `${API_URL}/designs/${id}/pdf`,
+  if (!res.ok) {
+    // A rejected token (not a wrong password on the login form) ends the session.
+    if (res.status === 401 && headers.Authorization && !path.startsWith('/auth/login')) onUnauthorized()
+    const body = await res.json().catch(() => null)
+    // Nest validation errors arrive as an array of messages.
+    const message = Array.isArray(body?.message) ? body.message[0] : body?.message
+    throw new Error(message ?? `Request to ${path} failed with status ${res.status}`)
+  }
+  // 204 / empty body (e.g. DELETE) has no JSON to parse.
+  const text = await res.text()
+  return (text ? JSON.parse(text) : undefined) as T
 }
 
 export const swatchesApi = {
@@ -48,7 +57,22 @@ export const tileDesignsApi = {
     request<TileDesignRecord>(`/tile-designs/${id}`, { method: 'PUT', body: JSON.stringify(record) }),
   mine: () => request<TileDesignRecord[]>('/tile-designs'),
   get: (id: string) => request<TileDesignRecord>(`/tile-designs/${id}`),
+  /** Read-only, no sign-in: what a shared preview link shows. */
+  getPublic: (id: string) => request<TileDesignRecord>(`/tile-designs/${id}/public`),
   remove: (id: string) => request<void>(`/tile-designs/${id}`, { method: 'DELETE' }),
+}
+
+type NewFreeformRecord = Omit<FreeformDesignRecord, 'id' | 'updatedAt'>
+
+export const freeformDesignsApi = {
+  create: (record: NewFreeformRecord) =>
+    request<FreeformDesignRecord>('/freeform-designs', { method: 'POST', body: JSON.stringify(record) }),
+  update: (id: string, record: NewFreeformRecord) =>
+    request<FreeformDesignRecord>(`/freeform-designs/${id}`, { method: 'PUT', body: JSON.stringify(record) }),
+  mine: () => request<FreeformDesignRecord[]>('/freeform-designs'),
+  get: (id: string) => request<FreeformDesignRecord>(`/freeform-designs/${id}`),
+  getPublic: (id: string) => request<FreeformDesignRecord>(`/freeform-designs/${id}/public`),
+  remove: (id: string) => request<void>(`/freeform-designs/${id}`, { method: 'DELETE' }),
 }
 
 export interface AuthResponse {
@@ -67,4 +91,5 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
+  me: () => request<AuthResponse['user']>('/auth/me'),
 }
