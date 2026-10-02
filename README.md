@@ -97,7 +97,7 @@ npx tsx src/store/freeform.check.ts    # frontend self-checks; one per *.check.t
 
 | Service | Settings |
 |---|---|
-| **API** (e.g. Render): root `backend`, build `npm ci && npm run build`, start `npm run start:prod` | `DATABASE_URL` (with `?sslmode=require`), `JWT_SECRET`, `NODE_ENV=production`, `DB_SYNCHRONIZE=true`, `CORS_ORIGIN=<site URL>` |
+| **API** (Render: **New → Blueprint** reads [`render.yaml`](render.yaml)). Manual setup: root `backend`, build `npm ci --include=dev && npm run build`, start `npm run start:prod` | `DATABASE_URL` (with `?sslmode=require`), `JWT_SECRET`, `NODE_ENV=production`, `DB_SYNCHRONIZE=true`, `CORS_ORIGIN=<site URL>` |
 | **Site** (e.g. Vercel): root `frontend` | `VITE_API_URL=<API URL>`. Security headers and SPA routing come from `vercel.json`. |
 | **Database** (e.g. Neon) | Any PostgreSQL 14+ |
 
