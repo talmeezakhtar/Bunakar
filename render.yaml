@@ -1,0 +1,27 @@
+# Render Blueprint for the API: Dashboard -> New -> Blueprint -> pick this repo.
+# You're asked only for the two values marked sync: false.
+services:
+  - type: web
+    name: bunakar-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    # NODE_ENV=production makes a plain `npm ci` skip devDependencies - including the Nest CLI the
+    # build needs. --include=dev keeps them for the build; start:prod runs plain node.
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # No migrations yet: let TypeORM create the tables from the entities.
+      - key: DB_SYNCHRONIZE
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      # Neon connection string, ending in ?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+      # The site's URL, e.g. https://bunakar.vercel.app (no trailing slash)
+      - key: CORS_ORIGIN
+        sync: false
