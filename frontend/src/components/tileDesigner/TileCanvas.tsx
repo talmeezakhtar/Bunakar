@@ -8,9 +8,9 @@ import CanvasToolbar from './CanvasToolbar'
 import TileGridSvg from './TileGridSvg'
 import type { DesignTool, NewOverlay, SelectedPiece } from './TileGridSvg'
 import { findDesignAsset } from '../../data/designAssets'
-import lightWoodImg from '../../assets/floors/light-wood.jpg'
-import darkWoodImg from '../../assets/floors/dark-wood.jpg'
-import concreteImg from '../../assets/floors/concrete.jpg'
+import lightWoodImg from '../../assets/floors/light-wood.webp'
+import darkWoodImg from '../../assets/floors/dark-wood.webp'
+import concreteImg from '../../assets/floors/concrete.webp'
 
 const MIN_ZOOM = 0.5
 const MAX_ZOOM = 2.5

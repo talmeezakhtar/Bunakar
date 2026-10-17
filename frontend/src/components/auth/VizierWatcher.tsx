@@ -97,7 +97,14 @@ function VizierWatcher({ mood, errorCount, onBanished }: VizierWatcherProps) {
               transition={{ type: 'spring', stiffness: 120, damping: 16 }}
               className="relative"
             >
-              <img src={vizierImg} alt="" className="w-full select-none drop-shadow-[0_20px_30px_rgba(0,0,0,0.6)]" draggable={false} />
+              <img
+                src={vizierImg}
+                alt=""
+                width={400}
+                height={707}
+                className="w-full select-none drop-shadow-[0_20px_30px_rgba(0,0,0,0.6)]"
+                draggable={false}
+              />
 
               {/* Cobra-staff eyes, calibrated to the snake head in jafar.png (~66% across,
                   ~37% down). Pulses while idle, burns steady as he schemes. */}
