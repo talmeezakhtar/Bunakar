@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /designer
+Disallow: /freeform
+Disallow: /my-designs
+
+Sitemap: https://bunakar.vercel.app/sitemap.xml

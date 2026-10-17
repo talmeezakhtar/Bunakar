@@ -1,6 +1,6 @@
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import PageMeta from '../components/common/PageMeta'
 import TileDesignerLayout from '../components/tileDesigner/TileDesignerLayout'
 import type { RugCategory } from '../types/tileDesign'
 
@@ -14,7 +14,6 @@ interface DesignerNavState {
 }
 
 function DesignerPage() {
-  useDocumentTitle('Design your rug')
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const navState = (location.state as DesignerNavState | null) ?? {}
@@ -22,17 +21,20 @@ function DesignerPage() {
   const { user } = useAuth()
 
   return (
-    // Keyed by account: a different user gets a fresh, blank designer - never the last one's work.
-    <TileDesignerLayout
-      key={user?.id}
-      initialShape={navState.shape}
-      initialRugCategory={navState.rugCategory}
-      initialWidthFt={navState.widthFt}
-      initialHeightFt={navState.heightFt}
-      initialDesignId={designId}
-      initialTemplateId={navState.templateId}
-      initialColorwayId={navState.colorwayId}
-    />
+    <>
+      <PageMeta title="Design your rug" description="Design your handwoven rug on Bunakar." noindex />
+      {/* Keyed by account: a different user gets a fresh, blank designer - never the last one's work. */}
+      <TileDesignerLayout
+        key={user?.id}
+        initialShape={navState.shape}
+        initialRugCategory={navState.rugCategory}
+        initialWidthFt={navState.widthFt}
+        initialHeightFt={navState.heightFt}
+        initialDesignId={designId}
+        initialTemplateId={navState.templateId}
+        initialColorwayId={navState.colorwayId}
+      />
+    </>
   )
 }
 

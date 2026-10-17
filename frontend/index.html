@@ -2,30 +2,61 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Self-hosted variable fonts (see index.css) - preloaded since both render above the
+         fold (the hero heading in Cinzel, nav and body text in Outfit). -->
+    <link rel="preload" href="/fonts/Cinzel-variable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/Outfit-variable.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- The no-JS/pre-mount fallback. main.tsx removes this title/description/canonical,
+         synchronously, before React's first render - see the comment there for why. -->
     <title>Bunakar: Weave Your Own Rug</title>
     <meta
       name="description"
       content="Design a handwoven rug your way: pick a pattern, colors and size, then see it in a real room before it's woven."
     />
+    <meta name="author" content="Talmeez Akhtar" />
     <meta name="theme-color" content="#070a16" />
+    <link rel="canonical" href="__SITE_URL__/" />
     <!-- Link previews (LinkedIn, WhatsApp, X). __SITE_URL__ is filled in at build time - see vite.config.ts. -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Bunakar" />
     <meta property="og:title" content="Bunakar: Weave Your Own Rug" />
     <meta property="og:description" content="Design a handwoven rug inspired by Mirzapur's carpet weavers, then see it in a real room." />
+    <meta property="og:url" content="__SITE_URL__/" />
     <meta property="og:image" content="__SITE_URL__/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Bunakar, design your own handwoven rug, over a golden-domed palace at sunset" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Bunakar: Weave Your Own Rug" />
+    <meta name="twitter:description" content="Design a handwoven rug inspired by Mirzapur's carpet weavers, then see it in a real room." />
+    <meta name="twitter:image" content="__SITE_URL__/og-image.jpg" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "name": "Bunakar",
+            "url": "__SITE_URL__/",
+            "applicationCategory": "DesignApplication",
+            "operatingSystem": "Web browser",
+            "description": "Design a handwoven rug your way: pick a pattern, colors and size, then see it in a real room before it's woven.",
+            "image": "__SITE_URL__/og-image.jpg",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "creator": { "@type": "Person", "name": "Talmeez Akhtar", "url": "https://talmeezakhtar.github.io/" }
+          },
+          {
+            "@type": "WebSite",
+            "name": "Bunakar",
+            "url": "__SITE_URL__/"
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

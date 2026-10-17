@@ -10,7 +10,7 @@ import { patternPrefix, renderTileFills } from '../components/tileDesigner/rende
 import { renderFreeform } from '../components/freeform/renderFreeform'
 import type { RugArt } from '../components/tileDesigner/RugPhotoSlide'
 import { useToast } from '../components/common/Toast'
-import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import PageMeta from '../components/common/PageMeta'
 
 /** One saved rug of either kind, ready to draw and link to. */
 type SavedRug = {
@@ -91,7 +91,6 @@ const RugThumb = memo(function RugThumb({ art, label }: { art: RugArt; label: st
 })
 
 function MyDesignsPage() {
-  useDocumentTitle('My designs')
   const { showToast } = useToast()
   const [rugs, setRugs] = useState<SavedRug[]>([])
   const [status, setStatus] = useState<Status>('loading')
@@ -130,6 +129,7 @@ function MyDesignsPage() {
 
   return (
     <div className="min-h-screen bg-night-950 px-4 pb-20 pt-24 sm:px-6">
+      <PageMeta title="My designs" description="Every rug you've saved on Bunakar, in one place." noindex />
       <div className="mx-auto max-w-5xl">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
