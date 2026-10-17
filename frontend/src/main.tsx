@@ -4,10 +4,10 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 
-// index.html (and its prerendered copies) ship a static title/description/canonical so
-// crawlers without JS, and the pre-mount flash, see something sane. Every route's PageMeta
-// then renders its own via React 19's native title/meta/link hoisting - so the static ones
-// must go first, synchronously, before that first commit, or the two coexist as duplicates.
+// index.html ships a static title/description/canonical so crawlers without JS, and the
+// pre-mount flash, see something sane. Every route's PageMeta then renders its own via React
+// 19's native title/meta/link hoisting - so the static ones must go first, synchronously,
+// before that first commit, or the two coexist as duplicates.
 document.querySelector('title')?.remove()
 document.querySelector('meta[name="description"]')?.remove()
 document.querySelector('link[rel="canonical"]')?.remove()

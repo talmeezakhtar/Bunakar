@@ -59,7 +59,26 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- React replaces all of this the instant it mounts - it's only what a crawler (or a
+         visitor) sees for the moment before the bundle runs. Reuses existing Tailwind classes
+         rather than new CSS, since Tailwind's already generated them from the real components. -->
+    <div id="root">
+      <header class="bg-night-950 px-4 py-5 text-center">
+        <span class="font-logo text-2xl text-sand-100">Buنakar</span>
+      </header>
+      <main class="bg-night-950 px-4 py-16 text-center">
+        <h1 class="font-display text-3xl text-sand-100 sm:text-4xl">Bunakar &ndash; Design Your Own Handwoven Rug</h1>
+        <p class="mx-auto mt-5 max-w-xl text-sand-300/80">
+          Design a handwoven rug inspired by the carpet weavers of Mirzapur, India. Pick a pattern, colors and
+          size, then preview it in a real room before it's woven.
+        </p>
+        <nav aria-label="Main" class="mt-8 flex flex-wrap justify-center gap-6 text-sand-300">
+          <a href="/#create-design">Start designing a rug</a>
+          <a href="/#about-us">About Bunakar</a>
+          <a href="/login">Log in</a>
+        </nav>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
