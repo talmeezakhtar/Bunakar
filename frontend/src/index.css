@@ -8,6 +8,24 @@
   font-display: swap;
 }
 
+/* Self-hosted, replacing the Google Fonts CDN request - both ship as variable fonts, so one
+   file per family covers every weight we use (see index.html's preload for these same two). */
+@font-face {
+  font-family: "Cinzel";
+  src: url("/fonts/Cinzel-variable.woff2") format("woff2");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Outfit";
+  src: url("/fonts/Outfit-variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   --font-display: "Cinzel", "Georgia", serif;
   --font-sans: "Outfit", "Segoe UI", sans-serif;

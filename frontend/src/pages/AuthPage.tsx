@@ -3,7 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
 import { CircleNotch, Eye, EyeSlash, WarningCircle } from '@phosphor-icons/react'
 import { useAuth } from '../hooks/useAuth'
-import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import PageMeta from '../components/common/PageMeta'
 import VizierWatcher from '../components/auth/VizierWatcher'
 import type { VizierMood } from '../components/auth/VizierWatcher'
 import palaceImg from '../assets/palace-bg.webp'
@@ -31,7 +31,6 @@ const inputClass =
   'w-full rounded-lg border border-night-600 bg-night-950/70 px-3.5 py-2.5 text-sm text-sand-100 placeholder:text-sand-300/70 transition-colors focus:border-gold-500 focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-gold-500/25'
 
 function AuthPage() {
-  useDocumentTitle('Log in')
   const { user, login, register } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -98,8 +97,13 @@ function AuthPage() {
 
   return (
     <div className="relative min-h-[100dvh] overflow-hidden bg-night-950 pt-16">
+      <PageMeta
+        title="Log in"
+        description="Log in to Bunakar to save your rug designs and come back to them anytime."
+        canonicalPath="/login"
+      />
       <div className="absolute inset-0" aria-hidden="true">
-        <img src={palaceImg} alt="" className="h-full w-full object-cover object-bottom opacity-40" />
+        <img src={palaceImg} alt="" width={1199} height={595} className="h-full w-full object-cover object-bottom opacity-40" />
         <div className="absolute inset-0 bg-gradient-to-b from-night-950/80 via-night-950/60 to-night-950" />
       </div>
 
