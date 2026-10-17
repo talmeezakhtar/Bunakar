@@ -1,6 +1,6 @@
 import { GithubLogo } from '@phosphor-icons/react'
 import { motion, useReducedMotion } from 'motion/react'
-import { HeritageSwatch } from './RugSwatches'
+import heritageRugImg from '../../assets/heritage-rug.webp'
 
 const REPO_URL = 'https://github.com/talmeezakhtar/Bunakar'
 
@@ -48,9 +48,16 @@ function AboutSection() {
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.7, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-          className="overflow-hidden rounded-2xl border border-night-600 shadow-[0_30px_60px_rgba(0,0,0,0.35)]"
         >
-          <HeritageSwatch className="w-full" />
+          <img
+            src={heritageRugImg}
+            alt="A hand-knotted rug with a gold and crimson medallion pattern, with weaving shuttles at its corners"
+            width={1200}
+            height={823}
+            loading="lazy"
+            decoding="async"
+            className="w-full"
+          />
         </motion.div>
       </div>
     </section>

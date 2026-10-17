@@ -58,36 +58,6 @@ export function GeometricSwatch({ className }: SwatchProps) {
   )
 }
 
-export function HeritageSwatch({ className }: SwatchProps) {
-  const petals = Array.from({ length: 12 })
-  return (
-    <svg viewBox="0 0 320 240" className={className} role="img" aria-hidden="true">
-      <rect width="320" height="240" fill="#1c2444" />
-      <rect x="10" y="10" width="300" height="220" fill="none" stroke="#d9a441" strokeWidth="2" />
-      <rect x="20" y="20" width="280" height="200" fill="none" stroke="#f0c774" strokeWidth="1" strokeDasharray="3 4" />
-      <g transform="translate(160 120)">
-        {petals.map((_, i) => (
-          <polygon
-            key={i}
-            transform={`rotate(${(360 / petals.length) * i})`}
-            points="0,-14 18,-58 0,-72 -18,-58"
-            fill={i % 2 === 0 ? '#d9a441' : '#b8842a'}
-            stroke="#7a2436"
-            strokeWidth="1"
-          />
-        ))}
-        <circle r="26" fill="#7a2436" stroke="#f0c774" strokeWidth="2" />
-        <circle r="12" fill="#f0c774" />
-      </g>
-      <g fill="#d9a441">
-        <circle cx="36" cy="36" r="3" />
-        <circle cx="284" cy="36" r="3" />
-        <circle cx="36" cy="204" r="3" />
-        <circle cx="284" cy="204" r="3" />
-      </g>
-    </svg>
-  )
-}
 
 export function TribalSwatch({ className }: SwatchProps) {
   const bands = ['#2c1810', '#7a3b1e', '#d9a441', '#2c1810', '#b8842a']
