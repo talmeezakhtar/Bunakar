@@ -193,6 +193,8 @@ function CreateDesignSection() {
                   src={genieImg}
                   alt=""
                   aria-hidden="true"
+                  width={620}
+                  height={716}
                   style={{ transformOrigin: '76% 98%' }}
                   initial={reduce ? false : { opacity: 0, scale: 0.12, rotate: 14, filter: 'blur(12px)' }}
                   animate={{ opacity: 1, scale: 1, rotate: 0, filter: 'blur(0px)' }}

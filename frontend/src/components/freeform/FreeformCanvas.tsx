@@ -8,9 +8,9 @@ import { insertVertex, moveShape, moveVertex, topShapeAt } from '../../store/fre
 import type { FreeformTarget } from '../../store/freeformOps'
 import { patternPrefix } from '../tileDesigner/renderTiles'
 import { renderFreeform } from './renderFreeform'
-import lightWoodImg from '../../assets/floors/light-wood.jpg'
-import darkWoodImg from '../../assets/floors/dark-wood.jpg'
-import concreteImg from '../../assets/floors/concrete.jpg'
+import lightWoodImg from '../../assets/floors/light-wood.webp'
+import darkWoodImg from '../../assets/floors/dark-wood.webp'
+import concreteImg from '../../assets/floors/concrete.webp'
 
 export type FreeformTool = 'select' | 'paint' | 'pen' | 'stamp'
 
