@@ -51,7 +51,7 @@ import { setLogoutGuard } from '../hooks/useAuth'
 import FreeformSidePanel from '../components/freeform/FreeformSidePanel'
 import { downloadText, tuftingTemplateSvg } from '../utils/freeformProduction'
 import { useToast } from '../components/common/Toast'
-import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import PageMeta from '../components/common/PageMeta'
 
 /** What the setup wizard hands over when it opens the freeform designer. */
 export interface FreeformNavState {
@@ -89,7 +89,6 @@ function Kbd({ children }: { children: ReactNode }) {
 }
 
 function FreeformDesignerPage() {
-  useDocumentTitle('Freeform rug designer')
   const location = useLocation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -452,6 +451,7 @@ function FreeformDesignerPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-night-950">
+      <PageMeta title="Freeform rug designer" description="Draw your own hand-tufted rug on Bunakar." noindex />
       <DesignerHeader
         name={state.name}
         onRename={(name) => history.commit((s) => (s.name === name ? s : { ...s, name }))}
