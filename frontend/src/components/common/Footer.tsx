@@ -33,7 +33,11 @@ function Footer() {
       </div>
 
       <p className="mt-8 text-center text-xs text-sand-300/70">
-        © {new Date().getFullYear()} Bunakar. All rights reserved.
+        © {new Date().getFullYear()} Bunakar. All rights reserved. Built by{' '}
+        <a href="https://talmeezakhtar.github.io/" target="_blank" rel="noreferrer" className="hover:text-gold-400">
+          Talmeez Akhtar
+        </a>
+        .
       </p>
     </footer>
   )

@@ -14,7 +14,7 @@ import { loadSwatchCatalog } from '../components/tileDesigner/tileDesignStorage'
 import { freeformDesignsApi, tileDesignsApi } from '../services/api'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../components/common/Toast'
-import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import PageMeta from '../components/common/PageMeta'
 
 type Status = 'loading' | 'ready' | 'not-found'
 
@@ -38,7 +38,6 @@ function parseRoomIndex(raw: string | null): number {
 }
 
 function RoomPreviewPage() {
-  useDocumentTitle('Room preview')
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const { showToast } = useToast()
@@ -205,6 +204,7 @@ function RoomPreviewPage() {
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-night-950" aria-busy="true" aria-label="Weaving your preview">
+        <PageMeta title="Room preview" description="Preview a handwoven rug design in a real room, on Bunakar." noindex />
         <div className="mx-auto max-w-5xl animate-pulse px-4 py-8 sm:px-6">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-2">
@@ -226,6 +226,7 @@ function RoomPreviewPage() {
   if (status === 'not-found' || !design) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 bg-night-950 text-center">
+        <PageMeta title="Room preview" description="Preview a handwoven rug design in a real room, on Bunakar." noindex />
         <p className="text-sand-300">We couldn't find that design.</p>
         <p className="max-w-sm text-sm text-sand-300/70">
           The link may be mistyped, or the rug may have been deleted.
@@ -242,6 +243,7 @@ function RoomPreviewPage() {
 
   return (
     <div className="min-h-screen bg-night-950">
+      <PageMeta title="Room preview" description="Preview a handwoven rug design in a real room, on Bunakar." noindex />
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>

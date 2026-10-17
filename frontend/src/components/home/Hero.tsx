@@ -96,6 +96,8 @@ function Hero() {
           <motion.img
             src={aladdinImg}
             alt="A rider soaring on a flying carpet"
+            width={900}
+            height={640}
             initial={
               reduce
                 ? false
