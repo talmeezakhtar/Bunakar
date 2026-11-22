@@ -5,6 +5,10 @@ export class Swatch {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  /** Stable slug (e.g. `solid-wine`), the id clients see. The uuid stays internal. */
+  @Column({ unique: true })
+  code: string;
+
   @Column()
   familyId: string;
 

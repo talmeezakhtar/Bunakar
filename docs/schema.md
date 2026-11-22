@@ -2,12 +2,24 @@
 
 This is the PostgreSQL schema, managed by TypeORM. The entities live in `backend/src/<module>/entities/`.
 
-Tables are created from the entities by schema sync. That's on by default in development, and in production it needs `DB_SYNCHRONIZE=true`. Moving to migrations is on the roadmap.
+The schema is built by TypeORM migrations in `backend/src/migrations/`. The app runs any pending ones on boot (`migrationsRun`), so a fresh database gets the full schema on first start. Schema sync is off everywhere except tests (`NODE_ENV=test`).
+
+- `Baseline`: the schema as schema sync left it. On a database that sync already built (a `users` table exists), it does nothing and is only recorded as run.
+- `SwatchCodesAndThumbnails`: adds `swatches.code` and fills it from the seed (matched on familyId + colorName). It rewrites every swatch uuid stored inside the design JSON to that code, and adds the `thumbnail` columns.
+
+After changing an entity, run these in `backend/`, with `DATABASE_URL` pointing at a database that is up to date:
+
+```bash
+npm run migration:generate -- src/migrations/DescribeTheChange
+npm run migration:run
+```
+
+`npm run migration:revert` undoes the last one.
 
 ```
 users 1──* tile_designs
       1──* freeform_designs        (deleting a user deletes their designs)
-swatches                           (catalog, referenced by id from inside the design JSON)
+swatches                           (catalog, referenced by code from inside the design JSON)
 ```
 
 ## `users`
@@ -25,7 +37,8 @@ swatches                           (catalog, referenced by id from inside the de
 
 | Column | Type | Notes |
 |---|---|---|
-| id | uuid | PK |
+| id | uuid | PK, internal only |
+| code | varchar | unique slug such as `solid-wine`, served as the swatch's `id` |
 | familyId, familyName | varchar | a style family, e.g. "Tufted Wool" |
 | colorName | varchar | |
 | swatchColor | varchar | hex average colour, also used as the fallback fill |
@@ -44,8 +57,9 @@ swatches                           (catalog, referenced by id from inside the de
 | rugCategory | enum | `area`, `runner`, `wall`, which room photos it previews in |
 | backgroundId | varchar | the floor shown under the rug |
 | tiles | jsonb | `{ row, col, swatchId, cutType, rotation, slot? }[]` |
-| myStyles | jsonb `string[]` | palette swatch ids |
+| myStyles | jsonb `string[]` | palette swatch codes |
 | overlays | jsonb | medallions and border runs placed on the tiles |
+| thumbnail | text, nullable | small webp data URL for design lists |
 | createdAt, updatedAt | timestamp | |
 
 Index: `(userId, updatedAt)`, which serves "my designs, newest first".
@@ -63,6 +77,7 @@ Index: `(userId, updatedAt)`, which serves "my designs, newest first".
 | ground | jsonb | the rug's base surface: `{ swatchId, texture, pile, carve, carveAngle }` |
 | shapes | jsonb | polygons in feet, back to front, each with its own surface finish |
 | myStyles | jsonb `string[]` | |
+| thumbnail | text, nullable | as above |
 | createdAt, updatedAt | timestamp | |
 
 Index: `(userId, updatedAt)`.

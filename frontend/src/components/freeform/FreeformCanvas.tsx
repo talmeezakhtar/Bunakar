@@ -192,7 +192,7 @@ function FreeformCanvas({
   return (
     <div
       className="flex flex-1 items-center justify-center overflow-auto p-8"
-      style={floor ? { backgroundImage: `url(${floor})`, backgroundSize: '220px auto' } : { backgroundColor: '#1c2444' }}
+      style={floor ? { backgroundImage: `url(${floor})`, backgroundSize: '220px auto' } : { backgroundColor: 'var(--color-surface-2)' }}
     >
       <svg
         ref={svgRef}
@@ -203,7 +203,7 @@ function FreeformCanvas({
         role="application"
         aria-roledescription="freeform rug canvas"
         aria-label={`Freeform rug, ${W} by ${H} feet. ${state.shapes.length} shapes.`}
-        className={`shrink-0 touch-none select-none overflow-visible shadow-[0_14px_36px_rgba(0,0,0,0.5)] outline-none focus-visible:ring-2 focus-visible:ring-gold-400 ${cursorClass}`}
+        className={`shrink-0 touch-none select-none overflow-visible shadow-[0_24px_60px_-20px_rgba(31,27,22,0.35)] outline-none focus-visible:ring-2 focus-visible:ring-accent-hover ${cursorClass}`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -215,7 +215,7 @@ function FreeformCanvas({
         {rugArt}
 
         {selected === 'ground' && (
-          <rect x={0} y={0} width={W} height={H} fill="none" stroke="#f0c774" strokeWidth={2 * ftPerPx} strokeDasharray={`${8 * ftPerPx} ${5 * ftPerPx}`} className="pointer-events-none" />
+          <rect x={0} y={0} width={W} height={H} fill="none" stroke="#e2a73a" strokeWidth={2 * ftPerPx} strokeDasharray={`${8 * ftPerPx} ${5 * ftPerPx}`} className="pointer-events-none" />
         )}
 
         {selectedShape && (
@@ -223,7 +223,7 @@ function FreeformCanvas({
             <path
               d={shapePath(selectedShape.points, selectedShape.smooth)}
               fill="none"
-              stroke="#f0c774"
+              stroke="#e2a73a"
               strokeWidth={2 * ftPerPx}
               strokeDasharray={`${8 * ftPerPx} ${5 * ftPerPx}`}
               className="pointer-events-none"
@@ -240,7 +240,7 @@ function FreeformCanvas({
                       cx={(p.x + q.x) / 2}
                       cy={(p.y + q.y) / 2}
                       r={handleR * 0.6}
-                      fill="#f0c774"
+                      fill="#e2a73a"
                       fillOpacity={0.45}
                       className="cursor-copy"
                     />
@@ -254,8 +254,8 @@ function FreeformCanvas({
                     cx={p.x}
                     cy={p.y}
                     r={handleR}
-                    fill={i === selectedVertex ? '#f0c774' : '#0b0f22'}
-                    stroke="#f0c774"
+                    fill={i === selectedVertex ? '#e2a73a' : '#0b0f22'}
+                    stroke="#e2a73a"
                     strokeWidth={1.5 * ftPerPx}
                     className="cursor-move"
                   />
@@ -270,17 +270,25 @@ function FreeformCanvas({
             <path
               d={`M${[...draft, ...(cursor ? [cursor] : [])].map((p) => `${p.x},${p.y}`).join('L')}`}
               fill="none"
-              stroke="#f0c774"
+              stroke="#e2a73a"
               strokeWidth={2 * ftPerPx}
             />
             {draft.map((p, i) => (
-              <circle key={i} cx={p.x} cy={p.y} r={i === 0 ? handleR * 1.4 : handleR * 0.8} fill={i === 0 ? '#f0c774' : '#0b0f22'} stroke="#f0c774" strokeWidth={1.5 * ftPerPx} />
+              <circle key={i} cx={p.x} cy={p.y} r={i === 0 ? handleR * 1.4 : handleR * 0.8} fill={i === 0 ? '#e2a73a' : '#0b0f22'} stroke="#e2a73a" strokeWidth={1.5 * ftPerPx} />
             ))}
           </g>
         )}
 
+        {/* Wool pile over the rug, so colours read as yarn while staying crisp to edit. */}
+        <defs>
+          <pattern id="ff-wool" patternUnits="userSpaceOnUse" width={140 * ftPerPx} height={140 * ftPerPx}>
+            <image href="/textures/pile.jpg" width={140 * ftPerPx} height={140 * ftPerPx} preserveAspectRatio="none" />
+          </pattern>
+        </defs>
+        <rect width={W} height={H} fill="url(#ff-wool)" opacity={0.35} style={{ mixBlendMode: 'multiply' }} className="pointer-events-none" />
+
         {stampGhost && (
-          <path d={stampGhost} fill={swatchesById.get(brush.swatchId)?.swatchColor ?? '#ccc'} fillOpacity={0.6} stroke="#f0c774" strokeWidth={1.5 * ftPerPx} className="pointer-events-none" />
+          <path d={stampGhost} fill={swatchesById.get(brush.swatchId)?.swatchColor ?? '#ccc'} fillOpacity={0.6} stroke="#e2a73a" strokeWidth={1.5 * ftPerPx} className="pointer-events-none" />
         )}
       </svg>
     </div>

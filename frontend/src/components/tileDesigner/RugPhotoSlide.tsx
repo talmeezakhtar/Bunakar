@@ -58,7 +58,7 @@ function RugPhotoSlide({ photo, rug }: RugPhotoSlideProps) {
   return (
     <div
       ref={containerRef}
-      className="relative isolate w-full overflow-hidden bg-night-950"
+      className="relative isolate w-full overflow-hidden bg-paper"
       style={{ aspectRatio: `${photo.width} / ${photo.height}` }}
     >
       <img

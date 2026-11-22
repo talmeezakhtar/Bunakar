@@ -21,3 +21,11 @@ createRoot(document.getElementById('root')!).render(
     <RouterProvider router={router} />
   </StrictMode>,
 )
+
+// The loading loom in index.html: fade it out once the first frame has painted.
+requestAnimationFrame(() => {
+  const boot = document.getElementById('boot')
+  if (!boot) return
+  boot.classList.add('boot-done')
+  window.setTimeout(() => boot.remove(), 400)
+})

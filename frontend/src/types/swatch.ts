@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import type { Fibre } from '../data/materials'
 
 export interface Swatch {
   id: string
@@ -9,6 +10,8 @@ export interface Swatch {
   /** Top-view photo of one physical tile; absent for flat-color styles. */
   imageUrl?: string
   categories: string[]
+  /** The yarn this style is made in (wool when absent); a studio yarn can still change it. */
+  fibre?: Fibre
 }
 
 /** CSS background for an HTML chip/card: the tile photo, over its average color while it loads. */

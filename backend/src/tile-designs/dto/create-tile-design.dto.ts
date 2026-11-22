@@ -18,6 +18,7 @@ import {
   TileDesignOrientation,
   TileRugCategory,
 } from '../entities/tile-design.entity';
+import { IsThumbnail } from '../../common/designs/thumbnail.decorator';
 
 export class TileSlotDto {
   @IsInt()
@@ -93,6 +94,12 @@ export class TileOverlayDto {
   @Min(0)
   @Max(1)
   reach?: number;
+
+  // A swatch id whose colour leads the motif; unset means "match the rug".
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  tint?: string;
 }
 
 export class CreateTileDesignDto {
@@ -141,4 +148,7 @@ export class CreateTileDesignDto {
   @ValidateNested({ each: true })
   @Type(() => TileOverlayDto)
   overlays?: TileOverlayDto[];
+
+  @IsThumbnail()
+  thumbnail?: string | null;
 }

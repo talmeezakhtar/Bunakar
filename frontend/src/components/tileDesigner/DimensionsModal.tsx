@@ -42,23 +42,23 @@ function DimensionsModal({ widthTiles, heightTiles, rugCategory, onClose, onSave
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div onClick={onClose} className="absolute inset-0 bg-night-950/80 backdrop-blur-sm" />
+      <div onClick={onClose} className="absolute inset-0 bg-ink/45 backdrop-blur-sm" />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="dimensions-title"
-        className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-y-auto rounded-2xl border border-night-600 bg-night-900 shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
+        className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-y-auto rounded-2xl border border-line-strong bg-surface shadow-[0_24px_60px_-20px_rgba(31,27,22,0.35)]"
       >
-        <header className="flex items-center justify-between border-b border-night-700 px-5 py-4">
-          <h2 id="dimensions-title" className="font-display text-lg tracking-wide text-sand-100">
+        <header className="flex items-center justify-between border-b border-line px-5 py-4">
+          <h2 id="dimensions-title" className="font-display text-lg text-ink">
             Edit Dimensions
           </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="inline-flex items-center justify-center rounded-full bg-transparent p-1.5 text-sand-300 pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors hover:text-gold-400"
+            className="inline-flex items-center justify-center rounded-full bg-transparent p-1.5 text-muted pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors hover:text-accent-hover"
           >
             <X size={18} />
           </button>
@@ -66,23 +66,23 @@ function DimensionsModal({ widthTiles, heightTiles, rugCategory, onClose, onSave
 
         <div className="space-y-5 px-5 py-5">
           <div>
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-sand-300/60">Rug Type</p>
-            <div className="inline-flex rounded-full border border-night-600 p-0.5">
+            <p className="mb-2 text-[0.8125rem] font-medium uppercase tracking-wide text-muted-2">Rug Type</p>
+            <div className="inline-flex rounded-full border border-line-strong p-0.5">
               {RUG_CATEGORIES.map((c) => (
                 <button
                   key={c.id}
                   type="button"
                   onClick={() => setCategory(c.id)}
                   aria-pressed={category === c.id}
-                  className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                    category === c.id ? 'bg-gold-500 text-night-950' : 'text-sand-300 hover:text-sand-100'
+                  className={`rounded-full px-3.5 py-1.5 text-[0.8125rem] font-medium transition-colors ${
+                    category === c.id ? 'bg-accent text-paper' : 'text-muted hover:text-ink'
                   }`}
                 >
                   {c.label}
                 </button>
               ))}
             </div>
-            <p className="mt-1.5 text-xs text-sand-300/60">Sets which room photos your preview uses.</p>
+            <p className="mt-1.5 text-[0.8125rem] text-muted-2">Sets which room photos your preview uses.</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -92,30 +92,30 @@ function DimensionsModal({ widthTiles, heightTiles, rugCategory, onClose, onSave
                 type="button"
                 onClick={() => setSelected(i)}
                 className={`flex flex-col items-center gap-2 rounded-xl border p-3 text-center transition-colors ${
-                  selected === i ? 'border-gold-500 bg-night-800' : 'border-night-600 hover:border-night-500'
+                  selected === i ? 'border-accent bg-surface-2' : 'border-line-strong hover:border-line-hover'
                 }`}
               >
-                <Ruler size={22} className="text-gold-400" />
-                <span className="text-sm font-medium text-sand-100">{preset.label}</span>
-                <span className="text-xs text-sand-300/60">{preset.widthTiles * preset.heightTiles} tiles</span>
+                <Ruler size={22} className="text-accent-hover" />
+                <span className="text-sm font-medium text-ink">{preset.label}</span>
+                <span className="text-[0.8125rem] text-muted-2">{preset.widthTiles * preset.heightTiles} tiles</span>
               </button>
             ))}
             <button
               type="button"
               onClick={() => setSelected('custom')}
               className={`flex flex-col items-center gap-2 rounded-xl border p-3 text-center transition-colors ${
-                selected === 'custom' ? 'border-gold-500 bg-night-800' : 'border-night-600 hover:border-night-500'
+                selected === 'custom' ? 'border-accent bg-surface-2' : 'border-line-strong hover:border-line-hover'
               }`}
             >
-              <Ruler size={22} className="text-gold-400" />
-              <span className="text-sm font-medium text-sand-100">Custom Size</span>
-              <span className="text-xs text-sand-300/60">{customW * customH} tiles</span>
+              <Ruler size={22} className="text-accent-hover" />
+              <span className="text-sm font-medium text-ink">Custom Size</span>
+              <span className="text-[0.8125rem] text-muted-2">{customW * customH} tiles</span>
             </button>
           </div>
 
           {selected === 'custom' && (
-            <div className="flex items-center justify-center gap-3 rounded-lg border border-night-700 bg-night-950/60 px-4 py-4">
-              <label className="flex flex-col items-center gap-1 text-xs text-sand-300">
+            <div className="flex items-center justify-center gap-3 rounded-lg border border-line bg-paper/60 px-4 py-4">
+              <label className="flex flex-col items-center gap-1 text-[0.8125rem] text-muted">
                 Width (ft)
                 <input
                   type="number"
@@ -123,11 +123,11 @@ function DimensionsModal({ widthTiles, heightTiles, rugCategory, onClose, onSave
                   max={MAX_RUG_FT}
                   value={customWidthFt}
                   onChange={(e) => setCustomWidthFt(e.target.value)}
-                  className="w-20 rounded-md border border-night-600 bg-night-950 px-2 py-1.5 text-center text-sm text-sand-100 focus:border-gold-500 focus:outline-none"
+                  className="w-20 rounded-md border border-line-strong bg-paper px-2 py-1.5 text-center text-sm text-ink focus:border-accent"
                 />
               </label>
-              <span className="mt-4 text-sand-300/60">x</span>
-              <label className="flex flex-col items-center gap-1 text-xs text-sand-300">
+              <span className="mt-4 text-muted-2">x</span>
+              <label className="flex flex-col items-center gap-1 text-[0.8125rem] text-muted">
                 Length (ft)
                 <input
                   type="number"
@@ -135,27 +135,27 @@ function DimensionsModal({ widthTiles, heightTiles, rugCategory, onClose, onSave
                   max={MAX_RUG_FT}
                   value={customHeightFt}
                   onChange={(e) => setCustomHeightFt(e.target.value)}
-                  className="w-20 rounded-md border border-night-600 bg-night-950 px-2 py-1.5 text-center text-sm text-sand-100 focus:border-gold-500 focus:outline-none"
+                  className="w-20 rounded-md border border-line-strong bg-paper px-2 py-1.5 text-center text-sm text-ink focus:border-accent"
                 />
               </label>
             </div>
           )}
 
-          <p className="text-center text-xs text-sand-300/70">
+          <p className="text-center text-[0.8125rem] text-muted-2">
             New size: {formatRugSize(nextWidth, nextHeight)} ({nextWidth * nextHeight} tiles)
           </p>
           {tooBig && (
-            <p role="alert" className="text-center text-xs text-red-300">
+            <p role="alert" className="text-center text-[0.8125rem] text-danger">
               The largest rug we can weave here is {MAX_RUG_FT} ft on a side.
             </p>
           )}
         </div>
 
-        <footer className="flex items-center justify-end gap-2 border-t border-night-700 px-5 py-4">
+        <footer className="flex items-center justify-end gap-2 border-t border-line px-5 py-4">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-night-600 bg-transparent px-4 py-2 text-sm pointer-coarse:min-h-11 font-medium text-sand-200 transition-colors hover:border-sand-300"
+            className="rounded-full border border-line-strong bg-transparent px-4 py-2 text-sm pointer-coarse:min-h-11 font-medium text-ink-2 transition-colors hover:border-muted"
           >
             Cancel
           </button>
@@ -163,7 +163,7 @@ function DimensionsModal({ widthTiles, heightTiles, rugCategory, onClose, onSave
             type="button"
             onClick={() => onSave(nextWidth, nextHeight, category)}
             disabled={tooBig}
-            className="rounded-full bg-gold-500 px-4 py-2 text-sm pointer-coarse:min-h-11 font-semibold text-night-950 transition-colors hover:bg-gold-400 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-full bg-accent px-4 py-2 text-sm pointer-coarse:min-h-11 font-semibold text-paper transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
             Save Changes
           </button>

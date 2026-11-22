@@ -1,5 +1,6 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsString, MaxLength } from 'class-validator';
+import { IsEmail, IsString } from 'class-validator';
+import { MaxBytes } from '../../common/validators/max-bytes.validator';
 
 export class LoginDto {
   @Transform(({ value }: { value: unknown }) =>
@@ -8,8 +9,8 @@ export class LoginDto {
   @IsEmail()
   email: string;
 
-  // bcrypt only reads the first 72 bytes, so longer input can't be a real password here.
+  // bcrypt only reads the first 72 bytes (not characters), so longer input can't be a real password.
   @IsString()
-  @MaxLength(72)
+  @MaxBytes(72)
   password: string;
 }

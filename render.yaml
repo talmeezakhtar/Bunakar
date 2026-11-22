@@ -14,9 +14,6 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      # No migrations yet: let TypeORM create the tables from the entities.
-      - key: DB_SYNCHRONIZE
-        value: "true"
       - key: JWT_SECRET
         generateValue: true
       # Neon connection string, ending in ?sslmode=require

@@ -2,37 +2,37 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- Self-hosted variable fonts (see index.css) - preloaded since both render above the
-         fold (the hero heading in Cinzel, nav and body text in Outfit). -->
-    <link rel="preload" href="/fonts/Cinzel-variable.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/Outfit-variable.woff2" as="font" type="font/woff2" crossorigin />
+         fold (the hero heading in El Messiri, nav and body text in Instrument Sans). -->
+    <link rel="preload" href="/fonts/ElMessiri-variable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/InstrumentSans-variable.woff2" as="font" type="font/woff2" crossorigin />
     <!-- The no-JS/pre-mount fallback. main.tsx removes this title/description/canonical,
          synchronously, before React's first render - see the comment there for why. -->
-    <title>Bunakar: Weave Your Own Rug</title>
+    <title>Bunakar: Design Your Own Hand-Knotted Rug</title>
     <meta
       name="description"
-      content="Design a handwoven rug your way: pick a pattern, colors and size, then see it in a real room before it's woven."
+      content="Bunakar is a rug design studio: build a rug tile by tile or draw it freehand, see it as real wool in a 3D room, and export a design any weaver can work from. Free to start."
     />
     <meta name="author" content="Talmeez Akhtar" />
-    <meta name="theme-color" content="#070a16" />
+    <meta name="theme-color" content="#fbf8f2" />
     <link rel="canonical" href="__SITE_URL__/" />
     <!-- Link previews (LinkedIn, WhatsApp, X). __SITE_URL__ is filled in at build time - see vite.config.ts. -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Bunakar" />
-    <meta property="og:title" content="Bunakar: Weave Your Own Rug" />
-    <meta property="og:description" content="Design a handwoven rug inspired by Mirzapur's carpet weavers, then see it in a real room." />
+    <meta property="og:title" content="Bunakar: Design Your Own Hand-Knotted Rug" />
+    <meta property="og:description" content="Design a rug tile by tile or freehand, see it as real wool in a 3D room, and export it for any weaver. Free to start." />
     <meta property="og:url" content="__SITE_URL__/" />
     <meta property="og:image" content="__SITE_URL__/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Bunakar, design your own handwoven rug, over a golden-domed palace at sunset" />
+    <meta property="og:image:alt" content="Bunakar: a hand-knotted rug designed on Bunakar, laid in a daylit living room" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Bunakar: Weave Your Own Rug" />
-    <meta name="twitter:description" content="Design a handwoven rug inspired by Mirzapur's carpet weavers, then see it in a real room." />
+    <meta name="twitter:title" content="Bunakar: Design Your Own Hand-Knotted Rug" />
+    <meta name="twitter:description" content="Design a rug tile by tile or freehand, see it as real wool in a 3D room, and export it for any weaver. Free to start." />
     <meta name="twitter:image" content="__SITE_URL__/og-image.jpg" />
     <script type="application/ld+json">
       {
@@ -44,38 +44,99 @@
             "url": "__SITE_URL__/",
             "applicationCategory": "DesignApplication",
             "operatingSystem": "Web browser",
-            "description": "Design a handwoven rug your way: pick a pattern, colors and size, then see it in a real room before it's woven.",
+            "description": "A rug design studio: build a rug tile by tile or draw it freehand, see it as real wool in a 3D room, and export a design any weaver can work from.",
             "image": "__SITE_URL__/og-image.jpg",
-            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "offers": { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "INR" },
             "creator": { "@type": "Person", "name": "Talmeez Akhtar", "url": "https://talmeezakhtar.github.io/" }
           },
           {
             "@type": "WebSite",
             "name": "Bunakar",
             "url": "__SITE_URL__/"
+          },
+          {
+            "@type": "Organization",
+            "name": "Bunakar",
+            "url": "__SITE_URL__/",
+            "logo": "__SITE_URL__/icon-512.png"
           }
         ]
       }
     </script>
+    <!-- The loading loom: warp threads with weft rows weaving upward, until the app mounts
+         (main.tsx fades it out). Without JS it never shows; with reduced motion it holds still. -->
+    <style>
+      #boot { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; background: #fbf8f2; transition: opacity 0.35s ease; }
+      #boot.boot-done { opacity: 0; pointer-events: none; }
+      #boot .loom { position: relative; width: 56px; height: 72px; border-top: 4px solid #6e4128; border-bottom: 4px solid #6e4128; }
+      #boot .warp { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, #e6dcc6 0 2px, transparent 2px 7px); }
+      #boot .weft { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: repeating-linear-gradient(0deg, #a8352b 0 6px, #d9a13b 6px 9px, #a8352b 9px 15px, #2f3a72 15px 18px); animation: boot-weave 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+      #boot p { margin-top: 14px; font: 500 14px/1 system-ui, sans-serif; color: #5a5248; letter-spacing: 0.02em; }
+      @keyframes boot-weave { 0% { height: 0; } 80%, 100% { height: 100%; } }
+      @media (prefers-reduced-motion: reduce) { #boot .weft { animation: none; height: 60%; } }
+    </style>
+    <!-- First-visit intro (once a session), after the Crimson Claws one: "weaver" in Hindi, Urdu
+         and English rises and leaves on madder red, the name lands in saffron, then the panel
+         rushes out toward you as the panel fades to the page loading underneath. Pure CSS from the first paint;
+         the scripts gate it and clear it. Skipped with reduced motion. -->
+    <!-- A file, not inline: the site's Content-Security-Policy allows only scripts from the site. -->
+    <script src="/intro.js"></script>
+    <style>
+      #intro { position: fixed; inset: 0; z-index: 10000; overflow: hidden; display: grid; place-items: center; background: #8f2c24; color: #fbf8f2; animation: bk-out 0.75s ease-in-out 3.45s forwards; }
+      #intro::before { content: ''; position: absolute; inset: 0; opacity: 0.07; background-size: 64px 64px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%23fbf8f2' stroke-width='1'%3E%3Crect x='20' y='20' width='24' height='24'/%3E%3Crect x='20' y='20' width='24' height='24' transform='rotate%2845 32 32%29'/%3E%3C/g%3E%3C/svg%3E"); }
+      html[data-intro='seen'] #intro { display: none; }
+      html[data-intro='playing'] { overflow: hidden; }
+      html[data-intro='playing'] #boot { visibility: hidden; }
+      #intro .stage { display: grid; place-items: center; }
+      #intro .word { grid-area: 1 / 1; display: flex; white-space: nowrap; font-size: clamp(3rem, 11vw, 7.5rem); line-height: 1.25; }
+      #intro .mask { display: block; overflow: hidden; padding: 0.2em 0.02em; margin: -0.2em 0; }
+      #intro .rise { display: block; transform: translateY(150%); animation: bk-swap 1.05s cubic-bezier(0.7, 0, 0.2, 1) both; }
+      #intro .hi { font-family: 'Kohinoor Devanagari', 'Nirmala UI', 'Noto Serif Devanagari', 'Noto Sans Devanagari', serif; font-weight: 600; }
+      #intro .ur { font-family: 'El Messiri', serif; font-weight: 600; }
+      #intro .en { font-family: 'El Messiri', Georgia, serif; font-weight: 500; }
+      #intro .hollow { color: transparent; -webkit-text-stroke: 1.5px #fbf8f2; }
+      #intro .final { font-family: 'Rubaith', 'El Messiri', serif; color: #d9a13b; animation: bk-zoom 1.15s cubic-bezier(0.7, 0, 0.84, 0) 3.05s both; }
+      #intro .final .rise { animation-name: bk-land; animation-duration: 0.6s; animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+      #intro .means { position: absolute; left: 0; right: 0; bottom: 18vh; text-align: center; font: 500 13px/1 system-ui, sans-serif; letter-spacing: 0.24em; text-transform: uppercase; color: rgba(251, 248, 242, 0.75); opacity: 0; animation: bk-fade 0.6s ease 2.8s forwards, bk-gone 0.3s ease 3.05s forwards; }
+      @keyframes bk-swap { 0% { transform: translateY(150%); } 32%, 66% { transform: translateY(0); } 100% { transform: translateY(-150%); } }
+      @keyframes bk-land { from { transform: translateY(150%); } to { transform: translateY(0); } }
+      @keyframes bk-zoom { 0% { transform: scale(1); opacity: 1; } 70% { opacity: 1; } 100% { transform: scale(30); opacity: 0; } }
+      @keyframes bk-fade { to { opacity: 1; } }
+      @keyframes bk-gone { to { opacity: 0; } }
+      @keyframes bk-out { to { opacity: 0; visibility: hidden; } }
+    </style>
+    <noscript><style>#boot, #intro { display: none; }</style></noscript>
   </head>
   <body>
+    <div id="intro" role="status" aria-label="Loading Bunakar">
+      <div class="stage" aria-hidden="true">
+        <span class="word hi" lang="hi"><span class="mask"><span class="rise" style="animation-delay:0.150s">बुनकर</span></span></span>
+        <span class="word ur" lang="ur" dir="rtl"><span class="mask"><span class="rise" style="animation-delay:0.900s">بُنکر</span></span></span>
+        <span class="word en"><span class="mask"><span class="rise" style="animation-delay:1.650s">W</span></span><span class="mask"><span class="rise hollow" style="animation-delay:1.685s">e</span></span><span class="mask"><span class="rise hollow" style="animation-delay:1.720s">a</span></span><span class="mask"><span class="rise" style="animation-delay:1.755s">v</span></span><span class="mask"><span class="rise" style="animation-delay:1.790s">e</span></span><span class="mask"><span class="rise" style="animation-delay:1.825s">r</span></span></span>
+        <span class="word final"><span class="mask"><span class="rise" style="animation-delay:2.400s">B</span></span><span class="mask"><span class="rise" style="animation-delay:2.435s">u</span></span><span class="mask"><span class="rise" style="animation-delay:2.470s">ن</span></span><span class="mask"><span class="rise" style="animation-delay:2.505s">a</span></span><span class="mask"><span class="rise" style="animation-delay:2.540s">k</span></span><span class="mask"><span class="rise" style="animation-delay:2.575s">a</span></span><span class="mask"><span class="rise" style="animation-delay:2.610s">r</span></span></span>
+      </div>
+      <p class="means" aria-hidden="true">Bunakar means weaver</p>
+    </div>
+    <div id="boot" aria-hidden="true">
+      <div style="display: grid; justify-items: center">
+        <div class="loom"><div class="warp"></div><div class="weft"></div></div>
+        <p>Bu&#x646;akar</p>
+      </div>
+    </div>
     <!-- React replaces all of this the instant it mounts - it's only what a crawler (or a
          visitor) sees for the moment before the bundle runs. Reuses existing Tailwind classes
          rather than new CSS, since Tailwind's already generated them from the real components. -->
     <div id="root">
-      <header class="bg-night-950 px-4 py-5 text-center">
-        <span class="font-logo text-2xl text-sand-100">Buنakar</span>
-      </header>
-      <main class="bg-night-950 px-4 py-16 text-center">
-        <h1 class="font-display text-3xl text-sand-100 sm:text-4xl">Bunakar &ndash; Design Your Own Handwoven Rug</h1>
-        <p class="mx-auto mt-5 max-w-xl text-sand-300/80">
-          Design a handwoven rug inspired by the carpet weavers of Mirzapur, India. Pick a pattern, colors and
-          size, then preview it in a real room before it's woven.
+      <header style="padding:20px 16px;font-family:Georgia,serif;font-size:22px;color:#1f1b16;background:#fbf8f2">Bunakar</header>
+      <main style="padding:64px 16px;max-width:640px;margin:0 auto;font-family:system-ui,sans-serif;color:#5a5248;background:#fbf8f2">
+        <h1 style="font-family:Georgia,serif;font-size:40px;line-height:1.1;color:#1f1b16">Design your own hand-knotted rug</h1>
+        <p>
+          Build a rug tile by tile or draw it freehand, see it as real wool in a 3D room, and export a design any weaver
+          can work from. Free to start.
         </p>
-        <nav aria-label="Main" class="mt-8 flex flex-wrap justify-center gap-6 text-sand-300">
-          <a href="/#create-design">Start designing a rug</a>
-          <a href="/#about-us">About Bunakar</a>
-          <a href="/login">Log in</a>
+        <nav aria-label="Main">
+          <a href="/#create-design">Design a rug</a> &middot; <a href="/#how-it-works">How it works</a> &middot;
+          <a href="/#about-us">The craft</a> &middot; <a href="/login">Log in</a>
         </nav>
       </main>
     </div>
