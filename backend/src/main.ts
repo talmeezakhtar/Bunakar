@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import { json } from 'express';
 import type { NextFunction, Request, Response } from 'express';
 import compression from 'compression';
 import { AppModule } from './app.module';
@@ -21,7 +22,14 @@ async function bootstrap() {
     );
   }
 
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // Body parsers are set up below: studio rugs carry knot charts, so their route takes larger
+  // bodies; everything else keeps the usual 100 KB limit.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false,
+  });
+  app.use('/rug-designs', json({ limit: '8mb' }));
+  app.useBodyParser('json', { limit: '100kb' });
+  app.useBodyParser('urlencoded', { limit: '100kb', extended: true });
   // Behind the host's proxy, req.ip must be the visitor's, not the proxy's - the login
   // throttle keys on it.
   if (production) app.set('trust proxy', 1);

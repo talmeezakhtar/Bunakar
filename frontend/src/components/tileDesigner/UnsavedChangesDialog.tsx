@@ -21,34 +21,34 @@ function UnsavedChangesDialog({ designName, saving, error, onSave, onDiscard, on
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div onClick={saving ? undefined : onCancel} className="absolute inset-0 bg-night-950/80 backdrop-blur-sm" />
+      <div onClick={saving ? undefined : onCancel} className="absolute inset-0 bg-ink/45 backdrop-blur-sm" />
       <div
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="unsaved-title"
         aria-describedby="unsaved-desc"
-        className="relative w-full max-w-md rounded-2xl border border-night-600 bg-night-900 shadow-[0_30px_80px_rgba(0,0,0,0.6)]"
+        className="relative w-full max-w-md rounded-2xl bg-paper shadow-[0_24px_60px_-20px_rgba(31,27,22,0.35)]"
       >
         <div className="space-y-2 px-5 py-5">
-          <h2 id="unsaved-title" className="font-display text-lg tracking-wide text-sand-100">
+          <h2 id="unsaved-title" className="font-display text-xl font-medium text-ink">
             Save changes to &ldquo;{designName}&rdquo;?
           </h2>
-          <p id="unsaved-desc" className="text-sm text-sand-300">
+          <p id="unsaved-desc" className="text-sm text-muted">
             Only saved designs appear in My Designs. If you don&apos;t save, these changes are lost.
           </p>
           {error && (
-            <p role="alert" className="text-sm text-red-400">
+            <p role="alert" className="text-sm text-danger">
               Couldn&apos;t save. Check your connection and try again.
             </p>
           )}
         </div>
 
-        <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-night-700 px-5 py-4">
+        <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-5 py-4">
           <button
             type="button"
             onClick={onCancel}
             disabled={saving}
-            className="rounded-full border border-night-600 bg-transparent px-4 py-2 text-sm font-medium text-sand-200 transition-colors hover:border-sand-300 disabled:opacity-50"
+            className="inline-flex min-h-11 items-center rounded-full border border-line-strong bg-transparent px-4 text-[0.95rem] font-medium text-ink transition-colors hover:border-ink disabled:opacity-50"
           >
             Cancel
           </button>
@@ -56,7 +56,7 @@ function UnsavedChangesDialog({ designName, saving, error, onSave, onDiscard, on
             type="button"
             onClick={onDiscard}
             disabled={saving}
-            className="rounded-full border border-night-600 bg-transparent px-4 py-2 text-sm font-medium text-sand-200 transition-colors hover:border-red-400 hover:text-red-300 disabled:opacity-50"
+            className="inline-flex min-h-11 items-center rounded-full border border-line-strong bg-transparent px-4 text-[0.95rem] font-medium text-ink transition-colors hover:border-danger/40 hover:text-danger disabled:opacity-50"
           >
             Don&apos;t save
           </button>
@@ -65,7 +65,7 @@ function UnsavedChangesDialog({ designName, saving, error, onSave, onDiscard, on
             autoFocus
             onClick={onSave}
             disabled={saving}
-            className="rounded-full bg-gold-500 px-4 py-2 text-sm font-semibold text-night-950 transition-colors hover:bg-gold-400 disabled:opacity-60"
+            className="inline-flex min-h-11 items-center rounded-full bg-accent px-5 text-[0.95rem] font-semibold text-paper transition-colors hover:bg-accent-hover disabled:opacity-60"
           >
             {saving ? 'Saving…' : 'Save'}
           </button>

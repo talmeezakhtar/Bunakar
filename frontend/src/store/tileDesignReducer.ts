@@ -29,13 +29,15 @@ export type TileDesignAction =
   | { type: 'REPLACE_PIECE'; row: number; col: number; index: number; piece: TileCell }
   | { type: 'DELETE_PIECE'; row: number; col: number; index: number }
   | { type: 'PLACE_OVERLAY'; overlay: DesignOverlay }
-  | { type: 'FRAME_BORDER'; assetId: string; thickness: 0.5 | 1; idPrefix: string }
+  | { type: 'FRAME_BORDER'; assetId: string; thickness: 0.5 | 1; idPrefix: string; tint?: string }
   | { type: 'REPLACE_OVERLAY_ASSET'; id: string; assetId: string }
   | { type: 'REMOVE_OVERLAY'; id: string }
+  /** Recolour a motif (a whole Frame when it is one of its runs). `tint` null = match the rug again. */
+  | { type: 'SET_OVERLAY_TINT'; id: string; tint: string | null }
 
 export type Footprint = Pick<DesignOverlay, 'row' | 'col' | 'widthTiles' | 'heightTiles'>
 
-function footprintsOverlap(a: Footprint, b: Footprint): boolean {
+export function footprintsOverlap(a: Footprint, b: Footprint): boolean {
   return a.col < b.col + b.widthTiles && b.col < a.col + a.widthTiles && a.row < b.row + b.heightTiles && b.row < a.row + a.heightTiles
 }
 
@@ -59,6 +61,12 @@ export function overlaysUnder(state: TileDesignState, fp: Footprint): DesignOver
 
 /** The four runs of a border around the rug's edge, each strip's outer edge facing outward.
  * Top and bottom span the full width; the sides fill in between them. */
+/** The Frame an overlay belongs to ("<prefix>" for runs "<prefix>-t|b|l|r"), or a unique key for a lone motif. */
+function frameGroup(id: string): string {
+  const m = /^(.*)-[tblr]$/.exec(id)
+  return m ? m[1] : `solo:${id}`
+}
+
 export function frameRuns(state: TileDesignState, assetId: string, thickness: 0.5 | 1, idPrefix: string): DesignOverlay[] {
   const { widthTiles: W, heightTiles: H } = state
   const runs: DesignOverlay[] = [{ id: `${idPrefix}-t`, assetId, thickness, row: 0, col: 0, widthTiles: W, heightTiles: 1, rotation: 0 }]
@@ -69,6 +77,71 @@ export function frameRuns(state: TileDesignState, assetId: string, thickness: 0.
     if (W > 1) runs.push({ id: `${idPrefix}-r`, assetId, thickness, reach, row: 1, col: W - 1, widthTiles: 1, heightTiles: H - 2, rotation: 90 })
   }
   return runs
+}
+
+/**
+ * A border run drawn up to another border meets it at the corner instead of replacing it: when
+ * the new run's first or last tile is already under a border, the run stops short of that tile
+ * (as the Frame button's side runs do), so a frame can be drawn by hand, run by run, in any order.
+ * Overlaps anywhere else, and every motif that isn't a border run, replace as before.
+ */
+export function fitBorderRun(state: TileDesignState, run: DesignOverlay): DesignOverlay {
+  if (run.thickness === undefined) return run
+  const vertical = run.widthTiles === 1 && run.heightTiles > 1
+  const horizontal = run.heightTiles === 1 && run.widthTiles > 1
+  if (!vertical && !horizontal) return run
+  const borders = state.overlays.filter((o) => o.thickness !== undefined && o.id !== run.id)
+  const covered = (row: number, col: number) => borders.some((o) => footprintsOverlap(o, { row, col, widthTiles: 1, heightTiles: 1 }))
+  const length = vertical ? run.heightTiles : run.widthTiles
+  const cell = (i: number) => (vertical ? [run.row + i, run.col] : [run.row, run.col + i]) as [number, number]
+  const trimStart = covered(...cell(0)) ? 1 : 0
+  const trimEnd = length - trimStart > 1 && covered(...cell(length - 1)) ? 1 : 0
+  if (!trimStart && !trimEnd) return run
+  // Any border still overlapped in the middle of the run is a real replacement: leave it alone.
+  for (let i = trimStart; i < length - trimEnd; i++) if (covered(...cell(i))) return run
+  const kept = length - trimStart - trimEnd
+  if (kept < 1) return run
+  // How far it then reaches into the corners is settled for every run by `fitBorderCorners`.
+  return vertical ? { ...run, row: run.row + trimStart, heightTiles: kept } : { ...run, col: run.col + trimStart, widthTiles: kept }
+}
+
+/**
+ * Hand-drawn border runs join at corners however they were drawn: each end looks at the tile
+ * just past it. A border turning the corner there (a perpendicular run) gets this run reaching
+ * into its open half; an empty corner tile between two runs that turn there is filled by the
+ * horizontal run, with the vertical one reaching in to meet it. A border along the same edge,
+ * or the rug's edge, gets no reach. Frames keep their own corner pieces and are left alone.
+ * Returns the same state when nothing changes.
+ */
+export function fitBorderCorners(state: TileDesignState): TileDesignState {
+  const borders = state.overlays.filter((o) => o.thickness !== undefined)
+  if (!borders.length) return state
+  const horizontal = (o: DesignOverlay) => o.rotation % 180 === 0
+  const at = (row: number, col: number, not: DesignOverlay) => borders.find((o) => o !== not && footprintsOverlap(o, { row, col, widthTiles: 1, heightTiles: 1 }))
+  let changed = false
+  const overlays = state.overlays.map((o) => {
+    if (o.thickness === undefined || frameGroup(o.id) !== `solo:${o.id}`) return o
+    const h = horizontal(o)
+    const t = o.thickness
+    const beyond = (i: number) => (h ? [o.row, o.col + i] : [o.row + i, o.col]) as [number, number]
+    const reachTo = ([r, c]: [number, number]) => {
+      if (r < 0 || c < 0 || r >= state.heightTiles || c >= state.widthTiles) return 0
+      const there = at(r, c, o)
+      if (there) return horizontal(there) !== h ? 1 - t : 0
+      const sides: [number, number][] = h ? [[r - 1, c], [r + 1, c]] : [[r, c - 1], [r, c + 1]]
+      const turns = sides.some(([rr, cc]) => {
+        const n = at(rr, cc, o)
+        return !!n && horizontal(n) !== h
+      })
+      return turns ? (h ? 1 : 1 - t) : 0
+    }
+    const reachBefore = reachTo(beyond(-1))
+    const reachAfter = reachTo(beyond(h ? o.widthTiles : o.heightTiles))
+    if ((o.reachBefore ?? 0) === reachBefore && (o.reachAfter ?? 0) === reachAfter && !o.reach) return o
+    changed = true
+    return { ...o, reach: 0, reachBefore, reachAfter }
+  })
+  return changed ? { ...state, overlays } : state
 }
 
 function withOverlay(state: TileDesignState, overlay: DesignOverlay): TileDesignState {
@@ -122,11 +195,13 @@ export function tileDesignReducer(state: TileDesignState, action: TileDesignActi
 function reduce(state: TileDesignState, action: TileDesignAction): TileDesignState {
   switch (action.type) {
     case 'PLACE_OVERLAY':
-      return withOverlay(state, action.overlay)
+      return fitBorderCorners(withOverlay(state, fitBorderRun(state, action.overlay)))
 
     case 'FRAME_BORDER': {
       // All or nothing: a frame with a gap would look like a mistake, not a choice.
-      const runs = frameRuns(state, action.assetId, action.thickness, action.idPrefix)
+      const runs = frameRuns(state, action.assetId, action.thickness, action.idPrefix).map((run) =>
+        action.tint ? { ...run, tint: action.tint } : run,
+      )
       if (!runs.every((run) => canPlaceOverlay(state, run))) return state
       return runs.reduce(withOverlay, state)
     }
@@ -136,9 +211,22 @@ function reduce(state: TileDesignState, action: TileDesignAction): TileDesignSta
       return { ...state, overlays: state.overlays.map((o) => (o.id === action.id ? { ...o, assetId: action.assetId } : o)) }
     }
 
+    case 'SET_OVERLAY_TINT': {
+      const group = frameGroup(action.id)
+      let changed = false
+      const overlays = state.overlays.map((o) => {
+        if (o.id !== action.id && frameGroup(o.id) !== group) return o
+        if ((o.tint ?? null) === action.tint) return o
+        changed = true
+        const { tint: _old, ...rest } = o
+        return action.tint ? { ...rest, tint: action.tint } : rest
+      })
+      return changed ? { ...state, overlays } : state
+    }
+
     case 'REMOVE_OVERLAY': {
       const overlays = state.overlays.filter((o) => o.id !== action.id)
-      return overlays.length === state.overlays.length ? state : { ...state, overlays }
+      return overlays.length === state.overlays.length ? state : fitBorderCorners({ ...state, overlays })
     }
 
     case 'PAINT_RANGE': {

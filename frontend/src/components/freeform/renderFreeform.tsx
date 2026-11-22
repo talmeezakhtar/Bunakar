@@ -105,7 +105,8 @@ function carving(prefix: string, key: string, f: SurfaceFinish, d: string, clip:
 export function renderFreeform(state: FreeformDesignState, swatchesById: Map<string, Swatch>, prefix: string): ReactNode[] {
   const { widthFt: W, heightFt: H, ground } = state
   const surfaces: { key: string; finish: SurfaceFinish; d: string }[] = [
-    { key: 'ground', finish: ground, d: `M0,0H${W}V${H}H0Z` },
+    // A ground with no yarn (a studio shape layer over a chart) isn't drawn.
+    ...(ground.swatchId ? [{ key: 'ground', finish: ground, d: `M0,0H${W}V${H}H0Z` }] : []),
     ...state.shapes.map((s) => ({ key: s.id, finish: s as SurfaceFinish, d: shapePath(s.points, s.smooth) })),
   ]
 

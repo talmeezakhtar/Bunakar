@@ -7,87 +7,69 @@ type ShapePanelProps = {
   onSelectCut: (cut: CutType) => void
 }
 
-function ShapePanel({ activeCut, onSelectCut }: ShapePanelProps) {
-  const standard = CUT_TYPES[0]
-  const cuts = CUT_TYPES.slice(1)
+/** What each cut is, in words - shown as the button's tooltip and to screen readers. */
+const CUT_HINTS: Record<CutType, string> = {
+  full: 'A whole 18″ tile',
+  half: 'Half a tile, split straight down the middle',
+  quad: 'A quarter tile: one corner square',
+  third: 'A strip one third of a tile wide',
+  quarter: 'A strip one quarter of a tile wide',
+  ninth: 'One square of a 3 × 3 split',
+  sixteenth: 'One square of a 4 × 4 split',
+  diagonal: 'Half a tile, cut corner to corner',
+  arc: 'A quarter circle',
+  'arc-remnant': 'What is left after cutting the quarter circle',
+}
 
+function CutIcon({ cut, active }: { cut: CutType; active: boolean }) {
+  const positionable = isPositionable(cut)
+  const { cols, rows } = slotGrid(cut)
+  const fill = active ? 'var(--color-accent)' : 'var(--color-muted-2)'
   return (
-    // Below lg this is one horizontally scrolling strip above the canvas, so the grid isn't pushed
-    // a full screen down behind ten stacked cards; at lg it's the familiar left column.
-    <aside aria-label="Tile shapes" className="w-full min-w-0 shrink-0 space-y-3 lg:w-40 lg:space-y-4">
-      <h2 className="font-display text-sm tracking-wide text-sand-200">Tile Shape</h2>
+    <svg viewBox="-0.04 -0.04 1.08 1.08" className="h-8 w-8 shrink-0" aria-hidden="true">
+      <rect x="0" y="0" width="1" height="1" fill="var(--color-paper)" stroke="var(--color-line-strong)" strokeWidth="0.03" />
+      {positionable ? (
+        <>
+          <path d={cutPath(cut, { x: 0, y: 0 })} fill={fill} />
+          {Array.from({ length: cols - 1 }, (_, i) => (
+            <line key={`v${i}`} x1={(i + 1) / cols} y1={0} x2={(i + 1) / cols} y2={1} stroke="var(--color-line-strong)" strokeWidth={0.02} />
+          ))}
+          {Array.from({ length: rows - 1 }, (_, i) => (
+            <line key={`h${i}`} x1={0} y1={(i + 1) / rows} x2={1} y2={(i + 1) / rows} stroke="var(--color-line-strong)" strokeWidth={0.02} />
+          ))}
+        </>
+      ) : (
+        <path d={cutPath(cut)} fill={fill} />
+      )}
+    </svg>
+  )
+}
 
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 lg:mx-0 lg:block lg:space-y-4 lg:overflow-visible lg:px-0 lg:pb-0">
-      <button
-        type="button"
-        onClick={() => onSelectCut(standard.id)}
-        aria-pressed={activeCut === standard.id}
-        className={`flex shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg border-2 px-3 py-2 transition-colors lg:w-full lg:gap-2 lg:py-4 ${
-          activeCut === standard.id ? 'border-gold-500 bg-night-800' : 'border-night-700 bg-night-900 hover:border-night-500'
-        }`}
-      >
-        <svg width="28" height="28" viewBox="0 0 1 1" aria-hidden="true">
-          <path d={cutPath('full')} fill="none" stroke="#e6d5b3" strokeWidth="0.05" />
-        </svg>
-        <span className="whitespace-nowrap text-xs font-medium text-sand-100">{standard.label}</span>
-      </button>
-
-      <div className="flex shrink-0 gap-2 lg:block">
-        <p className="sr-only mb-2 text-xs font-medium uppercase tracking-wide text-sand-300/70 lg:not-sr-only lg:block">Cuts</p>
-        <div className="flex gap-2 lg:grid lg:grid-cols-1">
-          {cuts.map((cut) => {
-            const active = activeCut === cut.id
-            const positionable = isPositionable(cut.id)
-            const { cols, rows } = slotGrid(cut.id)
-            return (
-              <button
-                key={cut.id}
-                type="button"
-                onClick={() => onSelectCut(cut.id)}
-                aria-pressed={active}
-                title={positionable ? `${cut.label} - drag anywhere in the tile to position` : cut.label}
-                className={`flex shrink-0 flex-col items-center gap-1 rounded-md border px-2.5 py-2 transition-colors lg:w-full lg:flex-row lg:gap-3 lg:py-2.5 ${
-                  active ? 'border-gold-500 bg-night-800' : 'border-night-700 bg-night-900 hover:border-night-500'
-                }`}
-              >
-                <svg width="40" height="40" viewBox="0 0 1 1" className="h-8 w-8 shrink-0 lg:h-10 lg:w-10" aria-hidden="true">
-                  <rect x="0" y="0" width="1" height="1" fill="none" stroke="#3a4470" strokeWidth="0.02" />
-                  {positionable ? (
-                    <>
-                      <path d={cutPath(cut.id, { x: 0, y: 0 })} fill={active ? '#f0c774' : '#7d88b3'} />
-                      {Array.from({ length: cols - 1 }, (_, i) => (
-                        <line
-                          key={`v-${i}`}
-                          x1={((i + 1) / cols).toFixed(4)}
-                          y1={0}
-                          x2={((i + 1) / cols).toFixed(4)}
-                          y2={1}
-                          stroke="#3a4470"
-                          strokeWidth={0.016}
-                        />
-                      ))}
-                      {Array.from({ length: rows - 1 }, (_, i) => (
-                        <line
-                          key={`h-${i}`}
-                          x1={0}
-                          y1={((i + 1) / rows).toFixed(4)}
-                          x2={1}
-                          y2={((i + 1) / rows).toFixed(4)}
-                          stroke="#3a4470"
-                          strokeWidth={0.016}
-                        />
-                      ))}
-                    </>
-                  ) : (
-                    <path d={cutPath(cut.id)} fill={active ? '#f0c774' : '#7d88b3'} />
-                  )}
-                </svg>
-                <span className="whitespace-nowrap text-xs text-sand-300 lg:text-sm">{cut.label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+/** The ten tile cuts. A slim two-column rail beside the canvas on desktop; one scrolling strip on phones. */
+function ShapePanel({ activeCut, onSelectCut }: ShapePanelProps) {
+  return (
+    <aside aria-label="Tile cuts" className="min-w-0 lg:w-[9.5rem] lg:shrink-0">
+      <h2 className="mb-2 text-sm font-semibold text-ink">Cut</h2>
+      <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-2 lg:overflow-visible lg:px-0 lg:pb-0">
+        {CUT_TYPES.map((cut, i) => {
+          const active = activeCut === cut.id
+          return (
+            <button
+              key={cut.id}
+              type="button"
+              onClick={() => onSelectCut(cut.id)}
+              aria-pressed={active}
+              aria-label={`${cut.label}: ${CUT_HINTS[cut.id]}`}
+              title={`${CUT_HINTS[cut.id]}${isPositionable(cut.id) ? ' - click where in the tile it goes' : ''}`}
+              className={`flex min-h-16 w-[4.5rem] shrink-0 flex-col items-center justify-center gap-1 rounded-lg border px-1 py-1.5 transition-colors lg:w-auto ${
+                active ? 'border-ink bg-paper ring-1 ring-ink' : 'border-line bg-paper hover:border-line-hover'
+              } ${i === 0 ? 'lg:col-span-2 lg:flex-row lg:gap-2' : ''}`}
+            >
+              <CutIcon cut={cut.id} active={active} />
+              <span className="whitespace-nowrap text-[0.8125rem] leading-tight text-ink-2">{cut.id === 'full' ? 'Full tile' : cut.label}</span>
+            </button>
+          )
+        })}
       </div>
     </aside>
   )

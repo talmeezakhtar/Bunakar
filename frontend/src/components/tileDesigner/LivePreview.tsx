@@ -22,29 +22,29 @@ function LivePreview({ swatch, cutType, rotation }: LivePreviewProps) {
   const vertical = rotatableStrip && (rotation === 90 || rotation === 270)
 
   return (
-    <section className="space-y-2 border-t border-night-700 pt-4">
-      <h2 className="font-display text-sm tracking-wide text-sand-200">Live Preview</h2>
-      <div className="flex items-center gap-3 rounded-lg border border-night-700 bg-night-900 p-3">
-        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-night-600 bg-night-950">
+    <section className="space-y-2">
+      <h2 className="text-sm font-semibold text-ink">Live Preview</h2>
+      <div className="flex items-center gap-3 rounded-lg border border-line bg-surface p-3">
+        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-line-strong bg-paper">
           {swatch ? (
             <svg width="100%" height="100%" viewBox="0 0 1 1" aria-hidden="true">
               {tilePatternDefs([swatch], prefix)}
-              <rect x={0} y={0} width={1} height={1} fill="#0b0f22" />
+              <rect x={0} y={0} width={1} height={1} fill="var(--color-surface-2)" />
               <g transform={`rotate(${spinRotation} 0.5 0.5)`}>
                 <path d={cutPath(cutType, { x: 0, y: 0 }, rotation)} fill={swatchFill(swatch, prefix)} />
               </g>
             </svg>
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-[10px] text-sand-300/70">
+            <div className="flex h-full w-full items-center justify-center text-[0.8125rem] text-muted-2">
               No style
             </div>
           )}
         </div>
         <div className="min-w-0 space-y-0.5">
-          <p className="truncate text-sm font-medium text-sand-100">
+          <p className="truncate text-sm font-medium text-ink">
             {swatch ? `${swatch.familyName} - ${swatch.colorName}` : 'Select a style'}
           </p>
-          <p className="text-xs text-sand-300/70">
+          <p className="text-[0.8125rem] text-muted-2">
             {cutLabel}
             {rotatableStrip ? (vertical ? ' - vertical' : ' - horizontal') : ''}
             {!positionable && !rotatableStrip && rotation !== 0 ? ` - rotated ${rotation}°` : ''}

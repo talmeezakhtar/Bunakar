@@ -4,7 +4,8 @@ import type { Swatch } from '../../types/swatch'
 import type { CutType, DesignOverlay, Rotation, Slot, TileDesignState } from '../../types/tileDesign'
 import { tileKey } from '../../types/tileDesign'
 import { canPlacePiece, cutPath, findPieceIndexAt, isPositionable, slotAt, slotGrid } from './cutShapes'
-import { patternPrefix, renderOverlays, renderTileFills, swatchFill, tilePatternDefs } from './renderTiles'
+import { patternPrefix, renderTileFills, rugPalette, swatchFill, tilePatternDefs } from './renderTiles'
+import { renderOverlays } from './renderOverlays'
 import { canPlaceOverlay, overlaysUnder } from '../../store/tileDesignReducer'
 
 type CellPoint = { row: number; col: number }
@@ -425,7 +426,7 @@ function TileGridSvg({
     designGhost = (
       <g key="design-ghost" className="pointer-events-none">
         {/* The finish filter is skipped here - it's costly to redraw on every pointer move. */}
-        <g opacity={valid ? 0.85 : 0.3}>{renderOverlays([{ ...designCell, id: 'ghost' }], `${prefix}d`, false)}</g>
+        <g opacity={valid ? 0.85 : 0.3}>{renderOverlays([{ ...designCell, id: "ghost" }], `${prefix}d`, { palette: rugPalette(state, swatchesById) }, false)}</g>
         {valid &&
           replaced.map((o) => (
             <rect
@@ -463,7 +464,7 @@ function TileGridSvg({
       width={selectedOverlay.widthTiles}
       height={selectedOverlay.heightTiles}
       fill="none"
-      stroke="#f0c774"
+      stroke="#e2a73a"
       strokeWidth={0.04}
       strokeDasharray="0.1 0.06"
       className="pointer-events-none"
@@ -485,7 +486,7 @@ function TileGridSvg({
             <path
               d={cutPath(piece.cutType, piece.slot, piece.rotation)}
               fill="none"
-              stroke="#f0c774"
+              stroke="#e2a73a"
               strokeWidth={0.035}
               strokeDasharray="0.08 0.05"
             />
@@ -530,7 +531,7 @@ function TileGridSvg({
             width={0.96}
             height={0.96}
             fill="none"
-            stroke="#f0c774"
+            stroke="#e2a73a"
             strokeWidth={0.05}
             className="pointer-events-none"
           />
