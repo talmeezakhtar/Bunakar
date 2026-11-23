@@ -13,6 +13,12 @@ import { LoginDto } from './dto/login.dto';
 
 const SALT_ROUNDS = 10;
 
+/** Postgres `unique_violation`; TypeORM's QueryFailedError carries the driver's code. */
+function isUniqueViolation(err: unknown) {
+  const e = err as { code?: string; driverError?: { code?: string } } | null;
+  return e?.code === '23505' || e?.driverError?.code === '23505';
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -33,10 +39,18 @@ export class AuthService {
     if (existing) throw new ConflictException('Email already registered');
 
     const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
-    const user = await this.users.save(
-      this.users.create({ email: dto.email, name: dto.name, passwordHash }),
-    );
-    return this.signToken(user);
+    try {
+      const user = await this.users.save(
+        this.users.create({ email: dto.email, name: dto.name, passwordHash }),
+      );
+      return this.signToken(user);
+    } catch (err) {
+      // Two sign-ups racing past the check above: the unique index catches the second.
+      if (isUniqueViolation(err)) {
+        throw new ConflictException('Email already registered');
+      }
+      throw err;
+    }
   }
 
   async login(dto: LoginDto) {
@@ -55,7 +69,13 @@ export class AuthService {
   }
 
   private toPublicUser(user: User) {
-    return { id: user.id, email: user.email, name: user.name, role: user.role };
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      plan: user.plan,
+    };
   }
 
   private signToken(user: User) {

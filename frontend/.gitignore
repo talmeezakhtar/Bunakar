@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Raw 3D sources (see assets-src/LICENSES.md)
+assets-src/models/

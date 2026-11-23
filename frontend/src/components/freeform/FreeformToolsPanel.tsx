@@ -17,7 +17,7 @@ export const TOOLS: { id: FreeformTool; label: string; icon: Icon; key: string }
 /** The four canvas tools as one segmented control; lives in the canvas toolbar. */
 export function ToolSwitcher({ tool, onToolChange }: { tool: FreeformTool; onToolChange: (tool: FreeformTool) => void }) {
   return (
-    <div role="radiogroup" aria-label="Canvas tool" className="flex rounded-lg border border-night-600 bg-night-950 p-0.5">
+    <div role="radiogroup" aria-label="Canvas tool" className="flex rounded-lg border border-line-strong bg-paper p-0.5">
       {TOOLS.map(({ id, label, icon: ToolIcon, key }) => (
         <button
           key={id}
@@ -27,8 +27,8 @@ export function ToolSwitcher({ tool, onToolChange }: { tool: FreeformTool; onToo
           aria-keyshortcuts={key}
           title={`${label} (${key})`}
           onClick={() => onToolChange(id)}
-          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors pointer-coarse:min-h-11 ${
-            tool === id ? 'bg-gold-500 text-night-950' : 'text-sand-300 hover:bg-night-800 hover:text-sand-100'
+          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[0.8125rem] font-medium transition-colors pointer-coarse:min-h-11 ${
+            tool === id ? 'bg-accent text-paper' : 'text-muted hover:bg-surface-2 hover:text-ink'
           }`}
         >
           <ToolIcon size={16} weight={tool === id ? 'fill' : 'regular'} />
@@ -58,11 +58,11 @@ type FreeformToolsPanelProps = {
 function Slider({ label, value, display, min, max, step, onChange }: { label: string; value: number; display: string; min: number; max: number; step: number; onChange: (v: number) => void }) {
   return (
     <label className="block space-y-1.5">
-      <span className="flex items-baseline justify-between text-xs text-sand-300">
+      <span className="flex items-baseline justify-between text-[0.8125rem] text-muted">
         {label}
-        <span className="tabular-nums text-sand-100">{display}</span>
+        <span className="tabular-nums text-ink">{display}</span>
       </span>
-      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-full accent-gold-500" />
+      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-full accent-accent" />
     </label>
   )
 }
@@ -72,13 +72,13 @@ function FreeformToolsPanel({ tool, penSmooth, onPenSmoothChange, stamp, onStamp
   const palette = FREEFORM_PALETTES.find((p) => p.id === generator.paletteId)
 
   return (
-    <aside aria-label="Shapes and layouts" className="flex w-full flex-col gap-6 lg:w-64 lg:shrink-0">
+    <aside aria-label="Shapes and layouts" className="flex w-full flex-col gap-6 rounded-[var(--radius-card)] border border-line bg-paper p-4 lg:min-h-0 lg:w-72 lg:shrink-0 lg:overflow-y-auto">
       {tool === 'pen' && (
         <section aria-labelledby="ff-pen" className="space-y-2.5">
-          <h2 id="ff-pen" className="font-display text-sm tracking-wide text-sand-200">
+          <h2 id="ff-pen" className="text-sm font-semibold text-ink">
             Draw a shape
           </h2>
-          <div role="radiogroup" aria-label="Edges" className="grid grid-cols-2 rounded-lg border border-night-600 p-0.5">
+          <div role="radiogroup" aria-label="Edges" className="grid grid-cols-2 rounded-lg border border-line-strong p-0.5">
             {[true, false].map((v) => (
               <button
                 key={String(v)}
@@ -86,7 +86,7 @@ function FreeformToolsPanel({ tool, penSmooth, onPenSmoothChange, stamp, onStamp
                 role="radio"
                 aria-checked={penSmooth === v}
                 onClick={() => onPenSmoothChange(v)}
-                className={`rounded-md py-1.5 text-xs transition-colors pointer-coarse:min-h-11 ${penSmooth === v ? 'bg-night-700 text-sand-100' : 'text-sand-300 hover:text-sand-100'}`}
+                className={`rounded-md py-1.5 text-[0.8125rem] transition-colors pointer-coarse:min-h-11 ${penSmooth === v ? 'bg-line text-ink' : 'text-muted hover:text-ink'}`}
               >
                 {v ? 'Curved edges' : 'Straight edges'}
               </button>
@@ -97,7 +97,7 @@ function FreeformToolsPanel({ tool, penSmooth, onPenSmoothChange, stamp, onStamp
 
       {tool === 'stamp' && (
         <section aria-labelledby="ff-stamp" className="space-y-3">
-          <h2 id="ff-stamp" className="font-display text-sm tracking-wide text-sand-200">
+          <h2 id="ff-stamp" className="text-sm font-semibold text-ink">
             Stamp a shape
           </h2>
           <div role="radiogroup" aria-label="Shape to stamp" className="grid max-h-48 grid-cols-5 gap-1.5 overflow-y-auto pr-0.5 lg:grid-cols-4">
@@ -110,12 +110,12 @@ function FreeformToolsPanel({ tool, penSmooth, onPenSmoothChange, stamp, onStamp
                 aria-label={s.name}
                 aria-checked={stamp.libraryId === s.id}
                 onClick={() => onStampChange({ ...stamp, libraryId: s.id })}
-                className={`flex aspect-square items-center justify-center rounded-md border-2 bg-night-900 p-1.5 transition-colors ${
-                  stamp.libraryId === s.id ? 'border-gold-500 bg-night-800' : 'border-night-700 hover:border-night-500'
+                className={`flex aspect-square items-center justify-center rounded-md border-2 bg-surface p-1.5 transition-colors ${
+                  stamp.libraryId === s.id ? 'border-accent bg-surface-2' : 'border-line hover:border-line-hover'
                 }`}
               >
                 <svg viewBox="-0.05 -0.05 1.1 1.1" className="h-full w-full" aria-hidden="true">
-                  <path d={shapePath(s.points, true)} fill={stamp.libraryId === s.id ? '#f0c774' : '#d8c9ad'} />
+                  <path d={shapePath(s.points, true)} fill={stamp.libraryId === s.id ? '#e2a73a' : '#cfc6b6'} />
                 </svg>
               </button>
             ))}
@@ -125,12 +125,12 @@ function FreeformToolsPanel({ tool, penSmooth, onPenSmoothChange, stamp, onStamp
         </section>
       )}
 
-      <section aria-labelledby="ff-layouts" className={`space-y-4 ${tool === 'pen' || tool === 'stamp' ? 'border-t border-night-700 pt-5' : ''}`}>
+      <section aria-labelledby="ff-layouts" className={`space-y-4 ${tool === 'pen' || tool === 'stamp' ? 'border-t border-line pt-5' : ''}`}>
         <div className="space-y-1">
-          <h2 id="ff-layouts" className="font-display text-sm tracking-wide text-sand-200">
+          <h2 id="ff-layouts" className="text-sm font-semibold text-ink">
             Start from a layout
           </h2>
-          <p className="text-xs leading-relaxed text-sand-300/70">Fill the rug in one click, then edit any shape.</p>
+          <p className="text-[0.8125rem] leading-relaxed text-muted-2">Fill the rug in one click, then edit any shape.</p>
         </div>
 
         <div role="radiogroup" aria-label="Layout" className="grid grid-cols-4 gap-2 lg:grid-cols-2">
@@ -145,7 +145,7 @@ function FreeformToolsPanel({ tool, penSmooth, onPenSmoothChange, stamp, onStamp
                 title={g.description}
                 onClick={() => onGeneratorChange({ id: g.id, paletteId: active ? generator.paletteId : g.paletteId, ...g.defaults })}
                 className={`group flex flex-col gap-1.5 rounded-lg border-2 p-1.5 text-left transition-colors ${
-                  active ? 'border-gold-500 bg-night-800' : 'border-night-700 hover:border-night-500'
+                  active ? 'border-accent bg-surface-2' : 'border-line hover:border-line-hover'
                 }`}
               >
                 <FreeformPreview
@@ -155,7 +155,7 @@ function FreeformToolsPanel({ tool, penSmooth, onPenSmoothChange, stamp, onStamp
                   heightFt={3}
                   className="aspect-[4/3] w-full rounded-sm"
                 />
-                <span className={`px-0.5 text-xs ${active ? 'text-sand-100' : 'text-sand-300'}`}>{g.name}</span>
+                <span className={`px-0.5 text-[0.8125rem] ${active ? 'text-ink' : 'text-muted'}`}>{g.name}</span>
               </button>
             )
           })}
@@ -164,18 +164,18 @@ function FreeformToolsPanel({ tool, penSmooth, onPenSmoothChange, stamp, onStamp
             role="radio"
             aria-checked={generator.id === 'blank'}
             onClick={() => onGeneratorChange({ id: 'blank', paletteId: generator.paletteId, ...FREEFORM_GENERATORS.find((g) => g.id === 'blank')!.defaults })}
-            className={`col-span-4 rounded-lg border-2 px-3 py-2 text-left text-xs transition-colors lg:col-span-2 ${
-              generator.id === 'blank' ? 'border-gold-500 bg-night-800 text-sand-100' : 'border-night-700 text-sand-300 hover:border-night-500'
+            className={`col-span-4 rounded-lg border-2 px-3 py-2 text-left text-[0.8125rem] transition-colors lg:col-span-2 ${
+              generator.id === 'blank' ? 'border-accent bg-surface-2 text-ink' : 'border-line text-muted hover:border-line-hover'
             }`}
           >
-            Blank rug <span className="text-sand-300/70">- just the ground, add your own shapes</span>
+            Blank rug <span className="text-muted-2">- just the ground, add your own shapes</span>
           </button>
         </div>
-        {generator.id !== 'blank' && <p className="text-xs leading-relaxed text-sand-300/70">{gen.description}.</p>}
+        {generator.id !== 'blank' && <p className="text-[0.8125rem] leading-relaxed text-muted-2">{gen.description}.</p>}
 
         <div className="space-y-2">
-          <p className="flex items-baseline justify-between text-xs text-sand-300">
-            Colours <span className="text-sand-100">{palette?.name}</span>
+          <p className="flex items-baseline justify-between text-[0.8125rem] text-muted">
+            Colours <span className="text-ink">{palette?.name}</span>
           </p>
           <div role="radiogroup" aria-label="Colour palette" className="flex flex-wrap gap-1.5">
             {FREEFORM_PALETTES.map((p) => (
@@ -188,11 +188,11 @@ function FreeformToolsPanel({ tool, penSmooth, onPenSmoothChange, stamp, onStamp
                 aria-label={p.name}
                 onClick={() => onGeneratorChange({ ...generator, paletteId: p.id })}
                 className={`flex -space-x-1 rounded-full border-2 p-1 transition-colors pointer-coarse:min-h-11 pointer-coarse:items-center ${
-                  generator.paletteId === p.id ? 'border-gold-500' : 'border-night-700 hover:border-night-500'
+                  generator.paletteId === p.id ? 'border-accent' : 'border-line hover:border-line-hover'
                 }`}
               >
                 {[p.ground, ...p.colors].slice(0, 5).map((ref, i) => (
-                  <span key={i} className="h-4 w-4 rounded-full border border-night-900" style={{ background: swatchHex(ref) }} />
+                  <span key={i} className="h-4 w-4 rounded-full border border-surface" style={{ background: swatchHex(ref) }} />
                 ))}
               </button>
             ))}
@@ -213,7 +213,7 @@ function FreeformToolsPanel({ tool, penSmooth, onPenSmoothChange, stamp, onStamp
           <button
             type="button"
             onClick={() => onGenerate(false)}
-            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-gold-500 py-2 text-xs font-semibold text-night-950 transition-colors hover:bg-gold-400 active:scale-[0.98] pointer-coarse:min-h-11"
+            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-accent py-2 text-[0.8125rem] font-semibold text-paper transition-colors hover:bg-accent-hover active:scale-[0.98] pointer-coarse:min-h-11"
           >
             <Sparkle size={14} weight="fill" /> Generate
           </button>
@@ -221,12 +221,12 @@ function FreeformToolsPanel({ tool, penSmooth, onPenSmoothChange, stamp, onStamp
             type="button"
             onClick={() => onGenerate(true)}
             title="Same settings, new arrangement"
-            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-gold-500/60 py-2 text-xs font-semibold text-gold-400 transition-colors hover:bg-gold-500 hover:text-night-950 active:scale-[0.98] pointer-coarse:min-h-11"
+            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-accent/60 py-2 text-[0.8125rem] font-semibold text-accent-hover transition-colors hover:bg-accent hover:text-paper active:scale-[0.98] pointer-coarse:min-h-11"
           >
             <Shuffle size={14} /> Shuffle
           </button>
         </div>
-        <p className="text-xs text-sand-300/60">Generating replaces the shapes on the rug. Ctrl+Z brings them back.</p>
+        <p className="text-[0.8125rem] text-muted-2">Generating replaces the shapes on the rug. Ctrl+Z brings them back.</p>
       </section>
     </aside>
   )

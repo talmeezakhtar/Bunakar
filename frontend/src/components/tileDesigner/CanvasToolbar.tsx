@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import {
   ArrowCounterClockwise,
   ArrowClockwise,
@@ -13,6 +14,8 @@ import type { BackgroundId } from '../../types/tileDesign'
 import { BACKGROUNDS } from '../../types/tileDesign'
 
 type CanvasToolbarProps = {
+  /** The 2D / 3D switch, when this device can show 3D. */
+  viewToggle?: ReactNode
   backgroundId: BackgroundId
   onSetBackground: (id: BackgroundId) => void
   canUndo: boolean
@@ -44,16 +47,19 @@ function CanvasToolbar({
   onZoomOut,
   isFullscreen,
   onToggleFullscreen,
+  viewToggle,
 }: CanvasToolbarProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-night-700 bg-night-900 px-3 py-2">
-      <div className="flex items-center gap-1.5">
+    <div className="flex flex-nowrap items-center justify-between gap-2 overflow-x-auto border-b border-line bg-paper px-2.5 py-1.5 [scrollbar-width:none]">
+      <div className="flex shrink-0 items-center gap-1.5">
+        {viewToggle}
+        {viewToggle && <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />}
         <button
           type="button"
           onClick={onUndo}
           disabled={!canUndo}
-          aria-label="Undo"
-          className="inline-flex items-center justify-center rounded-md p-1.5 text-sand-300 pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors hover:bg-night-800 hover:text-sand-100 disabled:cursor-not-allowed disabled:opacity-30"
+          aria-label="Undo (Ctrl+Z)" title="Undo (Ctrl+Z)"
+          className="inline-flex items-center justify-center rounded-md h-9 w-9 text-ink-2 pointer-coarse:h-11 pointer-coarse:w-11 transition-colors hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
         >
           <ArrowCounterClockwise size={18} />
         </button>
@@ -61,32 +67,33 @@ function CanvasToolbar({
           type="button"
           onClick={onRedo}
           disabled={!canRedo}
-          aria-label="Redo"
-          className="inline-flex items-center justify-center rounded-md p-1.5 text-sand-300 pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors hover:bg-night-800 hover:text-sand-100 disabled:cursor-not-allowed disabled:opacity-30"
+          aria-label="Redo (Ctrl+Y)" title="Redo (Ctrl+Y)"
+          className="inline-flex items-center justify-center rounded-md h-9 w-9 text-ink-2 pointer-coarse:h-11 pointer-coarse:w-11 transition-colors hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
         >
           <ArrowClockwise size={18} />
         </button>
 
-        <span className="mx-1 h-5 w-px bg-night-700" aria-hidden="true" />
+        <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />
 
         <button
           type="button"
           onClick={onTogglePreview}
           aria-pressed={previewMode}
-          className={`flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm pointer-coarse:min-h-11 transition-colors ${
-            previewMode ? 'bg-gold-500 text-night-950' : 'text-sand-300 hover:bg-night-800 hover:text-sand-100'
+          className={`flex items-center gap-1.5 rounded-md min-h-9 px-2 text-sm pointer-coarse:min-h-11 transition-colors ${
+            previewMode ? 'bg-ink text-paper' : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
           }`}
         >
           <Eye size={18} /> Preview
         </button>
       </div>
 
-      <label className="flex items-center gap-2 text-sm text-sand-300">
-        Floor Type
+      <label className="flex shrink-0 items-center gap-2 text-sm text-ink-2">
+        <span className="hidden sm:inline">Floor</span>
         <select
+          aria-label="Floor under the rug"
           value={backgroundId}
           onChange={(e) => onSetBackground(e.target.value as BackgroundId)}
-          className="rounded-md border border-night-600 bg-night-950 px-2 py-1 text-sm pointer-coarse:min-h-11 text-sand-100 focus:border-gold-500 focus:outline-none"
+          className="min-h-9 rounded-md border border-line-strong bg-paper px-2 text-sm text-ink pointer-coarse:min-h-11 focus:border-accent"
         >
           {BACKGROUNDS.map((bg) => (
             <option key={bg.id} value={bg.id}>
@@ -96,33 +103,33 @@ function CanvasToolbar({
         </select>
       </label>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-1.5">
         <button
           type="button"
           onClick={onRotateBrush}
-          aria-label="Rotate tile"
-          title="Rotate the active cut tile before placing it"
-          className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-sand-300 pointer-coarse:min-h-11 transition-colors hover:bg-night-800 hover:text-sand-100"
+          aria-label="Rotate the cut (R)"
+          title="Rotate the cut before placing it (R)"
+          className="flex items-center gap-1.5 rounded-md min-h-9 px-2 text-sm text-ink-2 pointer-coarse:min-h-11 transition-colors hover:bg-surface-2 hover:text-ink"
         >
-          <ArrowsClockwise size={18} /> Rotate Tile
+          <ArrowsClockwise size={18} /> <span className="hidden sm:inline">Rotate cut</span>
         </button>
         <button
           type="button"
           onClick={onRotateGrid}
-          aria-label="Rotate grid"
-          title="Rotate the whole design 90 degrees"
-          className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-sand-300 pointer-coarse:min-h-11 transition-colors hover:bg-night-800 hover:text-sand-100"
+          aria-label="Rotate the whole rug"
+          title="Turn the whole rug 90 degrees"
+          className="flex items-center gap-1.5 rounded-md min-h-9 px-2 text-sm text-ink-2 pointer-coarse:min-h-11 transition-colors hover:bg-surface-2 hover:text-ink"
         >
-          <ArrowsCounterClockwise size={18} /> Rotate Grid
+          <ArrowsCounterClockwise size={18} /> <span className="hidden sm:inline">Rotate rug</span>
         </button>
 
-        <span className="mx-1 h-5 w-px bg-night-700" aria-hidden="true" />
+        <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />
 
         <button
           type="button"
           onClick={onZoomOut}
           aria-label="Zoom out"
-          className="inline-flex items-center justify-center rounded-md p-1.5 text-sand-300 pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors hover:bg-night-800 hover:text-sand-100"
+          className="inline-flex items-center justify-center rounded-md h-9 w-9 text-ink-2 pointer-coarse:h-11 pointer-coarse:w-11 transition-colors hover:bg-surface-2 hover:text-ink"
         >
           <MagnifyingGlassMinus size={18} />
         </button>
@@ -130,7 +137,7 @@ function CanvasToolbar({
           type="button"
           onClick={onZoomIn}
           aria-label="Zoom in"
-          className="inline-flex items-center justify-center rounded-md p-1.5 text-sand-300 pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors hover:bg-night-800 hover:text-sand-100"
+          className="inline-flex items-center justify-center rounded-md h-9 w-9 text-ink-2 pointer-coarse:h-11 pointer-coarse:w-11 transition-colors hover:bg-surface-2 hover:text-ink"
         >
           <MagnifyingGlassPlus size={18} />
         </button>
@@ -139,7 +146,7 @@ function CanvasToolbar({
           type="button"
           onClick={onToggleFullscreen}
           aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
-          className="inline-flex items-center justify-center rounded-md p-1.5 text-sand-300 pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors hover:bg-night-800 hover:text-sand-100"
+          className="inline-flex items-center justify-center rounded-md h-9 w-9 text-ink-2 pointer-coarse:h-11 pointer-coarse:w-11 transition-colors hover:bg-surface-2 hover:text-ink"
         >
           {isFullscreen ? <CornersIn size={18} /> : <CornersOut size={18} />}
         </button>

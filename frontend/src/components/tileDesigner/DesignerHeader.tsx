@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { CaretDown, FilePlus, FloppyDisk, PencilSimple, Trash } from '@phosphor-icons/react'
+import { CaretDown, Check, FilePlus, FloppyDisk, Keyboard, PencilSimple, Trash } from '@phosphor-icons/react'
 
 export type DesignSummary = { id: string; name: string }
 
@@ -13,9 +13,50 @@ type DesignerHeaderProps = {
   onLoad: (id: string) => void
   onDelete: () => void
   onNew: () => void
+  /** Guests design freely; Save asks them to sign in first. */
+  signedIn: boolean
+  dirty: boolean
+  onShowShortcuts?: () => void
 }
 
-function DesignerHeader({ name, onRename, onSave, saveStatus, myDesigns, currentId, onLoad, onDelete, onNew }: DesignerHeaderProps) {
+const quiet =
+  'inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line-strong px-3.5 text-[0.9rem] text-ink transition-colors hover:border-ink'
+
+function SaveState({ signedIn, dirty, saveStatus }: Pick<DesignerHeaderProps, 'signedIn' | 'dirty' | 'saveStatus'>) {
+  const label =
+    saveStatus === 'saving'
+      ? 'Saving…'
+      : !signedIn
+        ? 'Kept on this device'
+        : dirty
+          ? 'Unsaved changes'
+          : 'All changes saved'
+  return (
+    <span className="inline-flex items-center gap-1.5 text-sm text-muted" aria-live="polite">
+      {signedIn && !dirty && saveStatus !== 'saving' ? (
+        <Check size={14} weight="bold" className="text-success" />
+      ) : (
+        <span aria-hidden="true" className={`h-2 w-2 rounded-full ${signedIn && dirty ? 'bg-saffron' : 'bg-line-hover'}`} />
+      )}
+      {label}
+    </span>
+  )
+}
+
+function DesignerHeader({
+  name,
+  onRename,
+  onSave,
+  saveStatus,
+  myDesigns,
+  currentId,
+  onLoad,
+  onDelete,
+  onNew,
+  signedIn,
+  dirty,
+  onShowShortcuts,
+}: DesignerHeaderProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(name)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -31,7 +72,7 @@ function DesignerHeader({ name, onRename, onSave, saveStatus, myDesigns, current
     function onClickOutside(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
     }
-    // Escape closes the list and returns focus to its button, like a native dropdown.
+    // Escape closes the menu and returns focus to its button, like a native dropdown.
     function onKey(e: KeyboardEvent) {
       if (e.key !== 'Escape') return
       setMenuOpen(false)
@@ -52,72 +93,117 @@ function DesignerHeader({ name, onRename, onSave, saveStatus, myDesigns, current
     else setDraft(name)
   }
 
+  const menuItem = 'flex min-h-11 w-full items-center gap-2 px-3 text-left text-[0.9rem] transition-colors hover:bg-surface-2'
+
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-night-700 bg-night-900 px-4 py-3 sm:px-6">
-      <div className="flex items-center gap-2">
-        {editing ? (
-          <input
-            autoFocus
-            aria-label="Design name"
-            maxLength={120}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commitName}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') commitName()
-              if (e.key === 'Escape') {
-                setDraft(name)
-                setEditing(false)
-              }
-            }}
-            className="rounded-md border border-night-600 bg-night-950 px-2 py-1 font-display text-lg tracking-wide text-sand-100 focus:border-gold-500 focus:outline-none"
-          />
-        ) : (
-          <>
-            <h1 className="font-display text-lg tracking-wide text-sand-100">{name}</h1>
-            <button
-              type="button"
-              onClick={startEditing}
-              aria-label="Rename design"
-              className="inline-flex items-center justify-center rounded-full bg-transparent p-1 text-sand-400 pointer-coarse:min-h-11 pointer-coarse:min-w-11 transition-colors hover:text-gold-400"
-            >
-              <PencilSimple size={15} />
-            </button>
-          </>
-        )}
+    <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line bg-paper px-4 py-2 sm:px-6">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5">
+        <div className="flex min-w-0 items-center gap-1">
+          {editing ? (
+            <input
+              autoFocus
+              aria-label="Design name"
+              maxLength={120}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={commitName}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitName()
+                if (e.key === 'Escape') {
+                  setDraft(name)
+                  setEditing(false)
+                }
+              }}
+              className="min-h-11 rounded-md border border-line-strong bg-paper px-2 font-display text-xl text-ink focus:border-accent"
+            />
+          ) : (
+            <>
+              <h1 className="truncate font-display text-xl font-medium text-ink">{name}</h1>
+              <button
+                type="button"
+                onClick={startEditing}
+                aria-label="Rename design"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-ink"
+              >
+                <PencilSimple size={16} />
+              </button>
+            </>
+          )}
+        </div>
+        <SaveState signedIn={signedIn} dirty={dirty} saveStatus={saveStatus} />
       </div>
 
       <div className="flex items-center gap-2">
+        {onShowShortcuts && (
+          <button type="button" onClick={onShowShortcuts} aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" className={`${quiet} hidden px-3 lg:inline-flex`}>
+            <Keyboard size={18} />
+          </button>
+        )}
+
         <div className="relative" ref={menuRef}>
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
             aria-expanded={menuOpen}
-            aria-controls="my-designs-list"
-            className="flex items-center gap-1.5 rounded-full border border-night-600 px-3 py-1.5 text-sm pointer-coarse:min-h-11 text-sand-200 transition-colors hover:border-sand-300"
+            aria-haspopup="menu"
+            aria-controls="design-menu"
+            className={quiet}
           >
-            My Designs <CaretDown size={13} />
+            Designs <CaretDown size={13} />
           </button>
           {menuOpen && (
-            <div id="my-designs-list" className="absolute right-0 top-full z-20 mt-1 w-56 rounded-md border border-night-600 bg-night-900 py-1 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-              {myDesigns.length === 0 ? (
-                <p className="px-3 py-2 text-xs text-sand-300/70">No saved designs yet.</p>
+            <div
+              id="design-menu"
+              role="menu"
+              className="absolute right-0 top-full z-30 mt-1 w-64 overflow-hidden rounded-xl border border-line bg-paper py-1 shadow-[0_24px_60px_-20px_rgba(31,27,22,0.35)]"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false)
+                  onNew()
+                }}
+                className={`${menuItem} text-ink`}
+              >
+                <FilePlus size={16} /> New design
+              </button>
+              {currentId && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    onDelete()
+                  }}
+                  className={`${menuItem} text-danger`}
+                >
+                  <Trash size={16} /> Delete this design
+                </button>
+              )}
+              <div className="my-1 border-t border-line" />
+              <p className="px-3 pb-1 pt-2 text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-muted-2">Saved designs</p>
+              {!signedIn ? (
+                <p className="px-3 pb-3 text-sm text-muted">Sign in to save designs and open them here.</p>
+              ) : myDesigns.length === 0 ? (
+                <p className="px-3 pb-3 text-sm text-muted">Nothing saved yet.</p>
               ) : (
-                myDesigns.map((d) => (
-                  <button
-                    key={d.id}
-                    type="button"
-                    onClick={() => {
-                      onLoad(d.id)
-                      setMenuOpen(false)
-                    }}
-                    className={`block w-full truncate px-3 py-2 text-left text-sm transition-colors hover:bg-night-800 ${
-                      d.id === currentId ? 'font-semibold text-gold-400' : 'text-sand-200'
-                    }`}
-                  >
-                    {d.name}
-                  </button>
-                ))
+                <div className="max-h-72 overflow-y-auto">
+                  {myDesigns.map((d) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        onLoad(d.id)
+                        setMenuOpen(false)
+                      }}
+                      className={`${menuItem} truncate ${d.id === currentId ? 'font-semibold text-accent' : 'text-ink-2'}`}
+                    >
+                      {d.name}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           )}
@@ -125,29 +211,11 @@ function DesignerHeader({ name, onRename, onSave, saveStatus, myDesigns, current
 
         <button
           type="button"
-          onClick={onNew}
-          className="flex items-center gap-1.5 rounded-full border border-night-600 px-3 py-1.5 text-sm pointer-coarse:min-h-11 text-sand-200 transition-colors hover:border-sand-300"
-        >
-          <FilePlus size={15} /> New Design
-        </button>
-
-        {currentId && (
-          <button
-            type="button"
-            onClick={onDelete}
-            className="flex items-center gap-1.5 rounded-full border border-night-600 px-3 py-1.5 text-sm pointer-coarse:min-h-11 text-sand-200 transition-colors hover:border-red-400/60 hover:text-red-400"
-          >
-            <Trash size={15} /> Delete
-          </button>
-        )}
-
-        <button
-          type="button"
           onClick={onSave}
           disabled={saveStatus === 'saving'}
-          className="flex items-center gap-1.5 rounded-full bg-gold-500 px-3.5 py-1.5 text-sm pointer-coarse:min-h-11 font-semibold tracking-wide text-night-950 transition-colors hover:bg-gold-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-ink px-4 text-[0.9rem] font-semibold text-paper transition-colors hover:bg-ink-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <FloppyDisk size={15} /> {saveStatus === 'saving' ? 'Saving...' : 'Save'}
+          <FloppyDisk size={16} /> {saveStatus === 'saving' ? 'Saving…' : signedIn ? 'Save' : 'Sign in to save'}
         </button>
       </div>
     </header>

@@ -1,22 +1,18 @@
-import { Suspense, lazy, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import AboutSection from '../components/home/AboutSection'
-import Hero from '../components/home/Hero'
 import Footer from '../components/common/Footer'
 import PageMeta from '../components/common/PageMeta'
-
-// Below the fold and the heaviest part of the page (pattern templates, generators, both rug
-// renderers) - its own chunk, so the hero paints without waiting for it.
-const loadCreateDesignSection = () => import('../components/home/CreateDesignSection')
-const CreateDesignSection = lazy(loadCreateDesignSection)
+import CraftSection from '../components/home/CraftSection'
+import Hero from '../components/home/Hero'
+import HowItWorks from '../components/home/HowItWorks'
+import StartSection from '../components/home/StartSection'
+import TourHome from '../components/home/TourHome'
+import { canShow3D } from '../three/canShow3D'
 
 function HomePage() {
   const location = useLocation()
-
-  // Fetch it straight after first paint, so it's normally ready before anyone scrolls there.
-  useEffect(() => {
-    void loadCreateDesignSection()
-  }, [])
+  // Decided once per visit: the 3D courtyard tour where it can run, the 2D page everywhere else.
+  const [tour] = useState(canShow3D)
 
   useEffect(() => {
     if (!location.hash) return
@@ -28,15 +24,19 @@ function HomePage() {
   return (
     <>
       <PageMeta
-        description="Design a handwoven rug your way: pick a pattern, colors and size, then see it in a real room before it's woven."
+        description="Bunakar is a rug design studio: draw a hand-knotted, flatwoven, tufted or tiled rug knot by knot, from a classic style or from a photo, see it as real wool in a 3D room, and hand a weaver its knot chart. Free to start."
         canonicalPath="/"
       />
-      <Hero />
-      {/* The placeholder keeps the section's id and height, so "#create-design" links still land. */}
-      <Suspense fallback={<section id="create-design" className="min-h-screen scroll-mt-16 bg-night-950" aria-busy="true" />}>
-        <CreateDesignSection />
-      </Suspense>
-      <AboutSection />
+      {tour ? (
+        <TourHome />
+      ) : (
+        <>
+          <Hero />
+          <StartSection />
+          <HowItWorks />
+          <CraftSection />
+        </>
+      )}
       <Footer />
     </>
   )

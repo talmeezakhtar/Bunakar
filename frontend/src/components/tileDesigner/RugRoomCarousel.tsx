@@ -45,12 +45,15 @@ function RugRoomCarousel({ photos, rug, index, onIndexChange }: RugRoomCarouselP
   if (!photo) return null
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-night-600 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+    <div className="overflow-hidden rounded-2xl border border-line-strong shadow-[0_24px_60px_-20px_rgba(31,27,22,0.35)]">
       <div className="relative" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-        <RugPhotoSlide photo={photo} rug={rug} />
+        {/* Keyed by room, so each one fades in rather than snapping over the last. */}
+        <div key={photo.id} className="motion-safe:animate-[fade-in_600ms_cubic-bezier(0.22,1,0.36,1)]">
+          <RugPhotoSlide photo={photo} rug={rug} />
+        </div>
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-4 pb-3 pt-10">
-          <p className="font-display text-sm tracking-wide text-sand-100">{photo.label}</p>
+          <p className="font-display text-sm text-paper">{photo.label}</p>
         </div>
 
         {photos.length > 1 && (
@@ -59,7 +62,7 @@ function RugRoomCarousel({ photos, rug, index, onIndexChange }: RugRoomCarouselP
               type="button"
               onClick={() => goTo(index - 1)}
               aria-label="Previous room"
-              className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 pointer-coarse:h-11 pointer-coarse:w-11 items-center justify-center rounded-full bg-night-950/70 text-sand-100 backdrop-blur transition-colors hover:bg-night-950/90"
+              className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 pointer-coarse:h-11 pointer-coarse:w-11 items-center justify-center rounded-full bg-paper/70 text-ink backdrop-blur transition-colors hover:bg-paper/90"
             >
               <CaretLeft size={18} />
             </button>
@@ -67,7 +70,7 @@ function RugRoomCarousel({ photos, rug, index, onIndexChange }: RugRoomCarouselP
               type="button"
               onClick={() => goTo(index + 1)}
               aria-label="Next room"
-              className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 pointer-coarse:h-11 pointer-coarse:w-11 items-center justify-center rounded-full bg-night-950/70 text-sand-100 backdrop-blur transition-colors hover:bg-night-950/90"
+              className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 pointer-coarse:h-11 pointer-coarse:w-11 items-center justify-center rounded-full bg-paper/70 text-ink backdrop-blur transition-colors hover:bg-paper/90"
             >
               <CaretRight size={18} />
             </button>
@@ -77,7 +80,7 @@ function RugRoomCarousel({ photos, rug, index, onIndexChange }: RugRoomCarouselP
 
       {photos.length > 1 && (
         // Each dot stays small; the button around it is a full 44px tap target.
-        <div className="flex items-center justify-center bg-night-900">
+        <div className="flex items-center justify-center bg-surface">
           {photos.map((p, i) => (
             <button
               key={p.id}
@@ -89,7 +92,7 @@ function RugRoomCarousel({ photos, rug, index, onIndexChange }: RugRoomCarouselP
             >
               <span
                 className={`h-2 rounded-full transition-all ${
-                  i === index ? 'w-6 bg-gold-500' : 'w-2 bg-night-600 group-hover:bg-night-500'
+                  i === index ? 'w-6 bg-accent' : 'w-2 bg-line-strong group-hover:bg-line-hover'
                 }`}
               />
             </button>

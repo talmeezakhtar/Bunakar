@@ -68,7 +68,7 @@ function StyleChip({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         className={`flex w-full cursor-grab flex-col items-center gap-1 rounded-md border-2 p-1.5 transition-colors active:cursor-grabbing ${
-          active ? 'border-gold-500 bg-night-800' : 'border-night-700 bg-night-900 hover:border-night-500'
+          active ? 'border-accent bg-surface-2' : 'border-line bg-surface hover:border-line-hover'
         }`}
         aria-pressed={active}
         title={`${swatch.familyName} - ${swatch.colorName}. ${hint}`}
@@ -77,13 +77,13 @@ function StyleChip({
           className="h-12 w-full shrink-0 rounded-sm border border-black/20"
           style={swatchBackground(swatch)}
         />
-        <span className="w-full truncate text-center text-[11px] text-sand-300">{swatch.colorName}</span>
+        <span className="w-full truncate text-center text-[0.8125rem] text-muted">{swatch.colorName}</span>
       </button>
       <button
         type="button"
         onClick={onRemove}
         aria-label={`Remove ${swatch.colorName}`}
-        className="absolute -right-1.5 -top-1.5 rounded-full border border-night-600 bg-night-900 p-0.5 text-sand-400 opacity-0 shadow-sm transition-opacity hover:text-red-400 focus-visible:opacity-100 group-hover:opacity-100 pointer-coarse:-right-2.5 pointer-coarse:-top-2.5 pointer-coarse:p-1.5 pointer-coarse:opacity-100"
+        className="absolute -right-1.5 -top-1.5 rounded-full border border-line-strong bg-surface p-0.5 text-muted-2 opacity-0 shadow-sm transition-opacity hover:text-danger focus-visible:opacity-100 group-hover:opacity-100 pointer-coarse:-right-2.5 pointer-coarse:-top-2.5 pointer-coarse:p-1.5 pointer-coarse:opacity-100"
       >
         <Trash size={12} />
       </button>
@@ -104,25 +104,25 @@ function MyStylesPanel({
   return (
     <section aria-labelledby="my-styles-heading" className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 id="my-styles-heading" className="font-display text-sm tracking-wide text-sand-200">
+        <h2 id="my-styles-heading" className="text-sm font-semibold text-ink">
           My Styles
         </h2>
         <button
           type="button"
           onClick={onAddMore}
-          className="inline-flex items-center gap-1 text-xs font-medium text-gold-400 transition-colors pointer-coarse:min-h-11 hover:text-gold-300"
+          className="inline-flex items-center gap-1 text-[0.8125rem] font-medium text-accent-hover transition-colors pointer-coarse:min-h-11 hover:text-accent-deep"
         >
           <Plus size={13} /> Add More
         </button>
       </div>
 
       {myStyles.length === 0 ? (
-        <p className="rounded-md border border-dashed border-night-600 px-3 py-4 text-center text-xs text-sand-300/70">
+        <p className="rounded-md border border-dashed border-line-strong px-3 py-4 text-center text-[0.8125rem] text-muted-2">
           No styles yet. Add a style to start painting the grid.
         </p>
       ) : (
         <>
-          <p className="text-xs text-sand-300/70">{hint}</p>
+          <p className="text-[0.8125rem] text-muted-2">{hint}</p>
           <ul className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-4">
             {myStyles.map((id) => {
               const swatch = swatchesById.get(id)

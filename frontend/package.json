@@ -7,23 +7,31 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check": "tsx scripts/run-checks.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
+    "@react-three/drei": "10.7.9",
+    "@react-three/fiber": "9.8.2",
     "@tailwindcss/vite": "^4.3.3",
     "motion": "^13.2.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.3",
+    "three": "0.187.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.10.1",
+    "@playwright/test": "1.49.1",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
+    "@types/three": "0.187.0",
     "@vitejs/plugin-react": "^6.1.0",
     "oxlint": "^1.79.0",
+    "tsx": "4.23.15",
     "typescript": "~6.0.2",
     "vite": "^8.2.2"
   }

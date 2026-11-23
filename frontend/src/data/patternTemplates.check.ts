@@ -2,9 +2,10 @@
 // Every template, at every rug size the wizard can produce, must fill each tile completely
 // with pieces the designer itself accepts (no overlaps), in every colorway.
 import { MOCK_SWATCHES } from './mockSwatches'
-import { COLORWAYS, PATTERN_TEMPLATES, applyTemplate, encodeBlock } from './patternTemplates'
+import { COLORWAYS, PATTERN_TEMPLATES, applyTemplate, encodeBlock, findTemplate } from './patternTemplates'
 import { createDefaultTileDesign, tileKey } from '../types/tileDesign'
 import { canPlacePiece, findPieceIndexAt } from '../components/tileDesigner/cutShapes'
+import { canPlaceOverlay, footprintsOverlap } from '../store/tileDesignReducer'
 import type { TileCell } from '../types/tileDesign'
 
 const assert = (ok: unknown, msg: string) => {
@@ -19,6 +20,11 @@ for (const t of PATTERN_TEMPLATES) {
   for (const cw of COLORWAYS) {
     for (const [w, h] of sizes) {
       const s = applyTemplate(createDefaultTileDesign(w, h), t, cw, MOCK_SWATCHES)
+      s.overlays.forEach((o, i) => {
+        assert(canPlaceOverlay(s, o), `${t.id} ${w}x${h}: overlay ${o.id} off the tiles`)
+        assert(!s.overlays.slice(0, i).some((x) => footprintsOverlap(x, o)), `${t.id} ${w}x${h}: overlay ${o.id} overlaps`)
+      })
+      if (t.decor && w >= 5 && h >= 5) assert(s.overlays.length > 0, `${t.id} ${w}x${h}: decor missing`)
       assert(s.myStyles.length >= 2 || w * h < 4, `${t.id}: at least two colors`)
       for (let r = 0; r < h; r++) {
         for (let c = 0; c < w; c++) {
@@ -37,4 +43,5 @@ for (const t of PATTERN_TEMPLATES) {
     }
   }
 }
+assert(findTemplate('harlequin')?.id === 'kilim-stepped-diamond', 'retired template ids resolve')
 console.log(`ok: ${PATTERN_TEMPLATES.length} templates x ${COLORWAYS.length} colorways x ${sizes.length} sizes`)

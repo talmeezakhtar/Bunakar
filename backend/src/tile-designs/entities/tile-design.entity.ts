@@ -62,6 +62,7 @@ export interface TileOverlay {
   rotation: 0 | 90 | 180 | 270;
   thickness?: 0.5 | 1;
   reach?: number;
+  tint?: string;
 }
 
 @Entity('tile_designs')
@@ -112,6 +113,10 @@ export class TileDesign {
 
   @Column({ type: 'jsonb', default: () => "'[]'" })
   overlays: TileOverlay[];
+
+  /** Small webp data URL drawn by the client on save, shown in design lists. */
+  @Column({ type: 'text', nullable: true })
+  thumbnail: string | null;
 
   @CreateDateColumn()
   createdAt: Date;

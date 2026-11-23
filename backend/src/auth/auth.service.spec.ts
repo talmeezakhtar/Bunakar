@@ -130,6 +130,21 @@ describe('AuthService (JWT)', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('turns a unique violation from a racing sign-up into 409', async () => {
+    // The pre-check misses (the other request hasn't committed yet); the index catches it.
+    users.save = () =>
+      Promise.reject(
+        Object.assign(new Error('duplicate key'), { code: '23505' }),
+      );
+    await expect(
+      service.register({
+        email: 'ali@example.com',
+        password: 'open-sesame',
+        name: 'Ali',
+      }),
+    ).rejects.toThrow(new ConflictException('Email already registered'));
+  });
+
   it('me() returns the account behind a token, and 401s once it is gone', async () => {
     const { user } = await service.register({
       email: 'ali@example.com',
