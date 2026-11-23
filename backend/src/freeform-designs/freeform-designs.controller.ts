@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { FreeformDesignsService } from './freeform-designs.service';
@@ -34,8 +35,14 @@ export class FreeformDesignsController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  findMine(@CurrentUser() user: AuthenticatedUser) {
-    return this.freeformDesignsService.findAllForUser(user.userId);
+  findMine(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('summary') summary?: string,
+  ) {
+    // ?summary=1 lists without the design bodies; without it, the full designs as before.
+    return summary === '1' || summary === 'true'
+      ? this.freeformDesignsService.findSummaries(user.userId)
+      : this.freeformDesignsService.findAllForUser(user.userId);
   }
 
   @Get(':id/public')

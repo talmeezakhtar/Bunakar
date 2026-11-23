@@ -5,6 +5,13 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
+/** Free: design, a few saved designs, small watermarked images. Pro: unlimited saves,
+ * full-size renders, production exports. */
+export enum UserPlan {
+  FREE = 'free',
+  PRO = 'pro',
+}
+
 export enum UserRole {
   SELLER = 'seller',
   ADMIN = 'admin',
@@ -26,6 +33,13 @@ export class User {
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.SELLER })
   role: UserRole;
+
+  @Column({ type: 'enum', enum: UserPlan, default: UserPlan.FREE })
+  plan: UserPlan;
+
+  /** When the current plan started (null for Free accounts that never upgraded). */
+  @Column({ type: 'timestamptz', nullable: true })
+  planSince: Date | null;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -20,6 +20,7 @@ import type {
   PileHeight,
   PileTexture,
 } from '../entities/freeform-design.entity';
+import { IsThumbnail } from '../../common/designs/thumbnail.decorator';
 
 const TEXTURES = ['cut', 'loop', 'shag', 'highlow', 'photo'];
 const CARVINGS = ['none', 'groove', 'ribbed', 'contour'];
@@ -112,6 +113,9 @@ export class CreateFreeformDesignDto {
   @IsString({ each: true })
   @MaxLength(64, { each: true })
   myStyles: string[];
+
+  @IsThumbnail()
+  thumbnail?: string | null;
 }
 
 export class UpdateFreeformDesignDto extends CreateFreeformDesignDto {}

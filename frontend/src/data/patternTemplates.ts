@@ -1,5 +1,6 @@
 import type { Swatch } from '../types/swatch'
-import type { CutType, Rotation, Slot, TileCell, TileDesignState } from '../types/tileDesign'
+import type { CutType, DesignOverlay, Rotation, Slot, TileCell, TileDesignState } from '../types/tileDesign'
+import { canPlaceOverlay, footprintsOverlap, frameRuns } from '../store/tileDesignReducer'
 import { tileKey } from '../types/tileDesign'
 
 /**
@@ -12,7 +13,7 @@ type Role = 0 | 1 | 2 | 3
 type Piece = { role: Role; cut: CutType; rotation?: Rotation; slot?: Slot }
 type Build = (widthTiles: number, heightTiles: number) => Record<string, Piece[]>
 
-export type TemplateCategory = 'Heritage' | 'Quilt' | 'Modern' | 'Woven Classics'
+export type TemplateCategory = 'Persian & classical' | 'Tribal' | 'Flatweave'
 
 export interface PatternTemplate {
   id: string
@@ -22,6 +23,18 @@ export interface PatternTemplate {
   origin: string
   colorwayId: string
   build: Build
+  /** Fine woven detail laid over the tiles: a border frame, a centre medallion, a field repeat. */
+  decor?: TemplateDecor
+}
+
+export interface TemplateDecor {
+  /** A border motif framed round the rug (its corners turn), and its thickness in tiles. */
+  border?: string
+  thickness?: 0.5 | 1
+  /** A centre piece (medallion, star) and its height-to-width ratio from the motif catalogue. */
+  centre?: { id: string; aspect: number; /** Widest it may get, in tiles. */ maxTiles?: number }
+  /** A small motif repeated across the field every `every` tiles, around the centre piece. */
+  field?: { id: string; every: number }
 }
 
 /** Swatches are referenced by family + color name, since catalog ids are database-generated. */
@@ -125,19 +138,29 @@ function pixels(k: 2 | 3 | 4, fn: (x: number, y: number, Wp: number, Hp: number)
   }
 }
 
-/** Plain 2/2 twill: shows the warp color where the warp floats, the weft color elsewhere. */
-function twill(x: number, y: number, warp: Role, weft: Role, dir = 1): Role {
-  return mod(x + dir * y, 4) < 2 ? warp : weft
-}
 
 // ---- templates -------------------------------------------------------------------------
 
+
+/**
+ * A rug's border: an outer guard stripe, the main border and an inner guard, scaled to the rug.
+ * Returns the role to draw, or null inside the field.
+ */
+function frame(x: number, y: number, Wp: number, Hp: number): Role | null {
+  const width = Math.min(3, Math.floor(Math.min(Wp, Hp) / 8))
+  if (width < 1) return null
+  const edge = Math.min(x, y, Wp - 1 - x, Hp - 1 - y)
+  if (edge >= width) return null
+  if (edge === 0) return 1
+  if (edge === width - 1) return 2
+  return mod(x + y, 2) === 0 ? 3 : 1
+}
+
 export const PATTERN_TEMPLATES: PatternTemplate[] = [
-  // Heritage
   {
     id: 'beni-ourain-lattice',
     name: 'Beni Ourain Lattice',
-    category: 'Heritage',
+    category: 'Tribal',
     origin: 'Moroccan Middle Atlas: dark diamond lines on undyed wool',
     colorwayId: 'berber-ivory',
     build: pixels(4, (x, y) => {
@@ -149,7 +172,7 @@ export const PATTERN_TEMPLATES: PatternTemplate[] = [
   {
     id: 'kilim-stepped-diamond',
     name: 'Kilim Stepped Diamond',
-    category: 'Heritage',
+    category: 'Flatweave',
     origin: 'Anatolian kilim: stepped diamonds in a half-drop repeat',
     colorwayId: 'kilim-red',
     build: pixels(4, (x, y) => {
@@ -161,7 +184,7 @@ export const PATTERN_TEMPLATES: PatternTemplate[] = [
   {
     id: 'kilim-chevron',
     name: 'Kilim Chevron',
-    category: 'Heritage',
+    category: 'Flatweave',
     origin: 'Flatweave zigzag bands, as in Turkish and Persian kilims',
     colorwayId: 'kilim-red',
     build: cells((r, c) => {
@@ -172,7 +195,7 @@ export const PATTERN_TEMPLATES: PatternTemplate[] = [
   {
     id: 'eye-dazzler',
     name: 'Eye Dazzler',
-    category: 'Heritage',
+    category: 'Flatweave',
     origin: 'Navajo Germantown "eye dazzler" weavings of the 1880s',
     colorwayId: 'kilim-red',
     build: pixels(4, (x, y, Wp, Hp) => {
@@ -183,7 +206,7 @@ export const PATTERN_TEMPLATES: PatternTemplate[] = [
   {
     id: 'persian-medallion',
     name: 'Medallion & Corners',
-    category: 'Heritage',
+    category: 'Persian & classical',
     origin: 'Safavid Persian layout: central medallion, corner spandrels, guard border',
     colorwayId: 'midnight-gold',
     build: pixels(4, (x, y, Wp, Hp) => {
@@ -198,11 +221,12 @@ export const PATTERN_TEMPLATES: PatternTemplate[] = [
       if (dx + dy >= 1.45) return 1
       return 0
     }),
+    decor: { border: 'border-herati-guard', centre: { id: 'medallion-isfahan', aspect: 1.36 } },
   },
   {
     id: 'ikat-diamond',
     name: 'Ikat Diamond',
-    category: 'Heritage',
+    category: 'Tribal',
     origin: 'Central Asian ikat: resist-dyed diamonds with feathered edges',
     colorwayId: 'oasis',
     build: pixels(4, (x, y) => {
@@ -214,183 +238,117 @@ export const PATTERN_TEMPLATES: PatternTemplate[] = [
   {
     id: 'dhurrie-stripe',
     name: 'Dhurrie Stripe',
-    category: 'Heritage',
+    category: 'Flatweave',
     origin: 'Indian cotton dhurrie: banded flatweave stripes',
     colorwayId: 'atlas-clay',
     build: pixels(4, (_x, y) => ([0, 0, 0, 0, 1, 1, 0, 3, 0, 2, 2, 0] as Role[])[y % 12]),
   },
-
-  // Quilt
-  {
-    id: 'flying-geese',
-    name: 'Flying Geese',
-    category: 'Quilt',
-    origin: 'American patchwork: triangle "geese" against a sky',
-    colorwayId: 'atlas-clay',
-    build: cells((r, c) => {
-      const goose = ([1, 2, 3] as Role[])[r % 3]
-      return c % 2 ? tri(0, goose, 90) : tri(0, goose, 0)
-    }),
-  },
-  {
-    id: 'pinwheel',
-    name: 'Pinwheel',
-    category: 'Quilt',
-    origin: 'Four half-square triangles spinning around a center',
-    colorwayId: 'midnight-gold',
-    build: cells((r, c) => {
-      const blade: Role = (Math.floor(r / 2) + Math.floor(c / 2)) % 2 ? 2 : 1
-      const q = (r % 2) * 2 + (c % 2)
-      return tri(blade, 0, [90, 180, 0, 270][q])
-    }),
-  },
-  {
-    id: 'drunkards-path',
-    name: "Drunkard's Path",
-    category: 'Quilt',
-    origin: 'Quarter circles set in squares, forming a meandering curve',
-    colorwayId: 'oasis',
-    build: cells((r, c) => ((r + c) % 2 ? arc(0, 1, 180) : arc(1, 0, 0))),
-  },
-  {
-    id: 'housetop',
-    name: 'Housetop',
-    category: 'Quilt',
-    origin: "Gee's Bend half-log-cabin: concentric frames",
-    colorwayId: 'atlas-clay',
-    build: pixels(2, (x, y, Wp, Hp) => {
-      const ring = Math.min(x, y, Wp - 1 - x, Hp - 1 - y)
-      return ([1, 0, 2, 0, 3, 0] as Role[])[ring % 6]
-    }),
-  },
-
-  // Modern
-  {
-    id: 'harlequin',
-    name: 'Harlequin',
-    category: 'Modern',
-    origin: 'Commedia dell\'arte diamonds, two tones on a ground',
-    colorwayId: 'midnight-gold',
-    build: cells((r, c) => {
-      const inner: Role = (Math.floor(r / 2) + Math.floor(c / 2)) % 2 ? 2 : 1
-      const q = (r % 2) * 2 + (c % 2)
-      return tri(0, inner, [0, 90, 270, 180][q])
-    }),
-  },
-  {
-    id: 'bauhaus-circles',
-    name: 'Bauhaus Circles',
-    category: 'Modern',
-    origin: 'Mid-century circle grid built from four quarter discs',
-    colorwayId: 'oasis',
-    build: cells((r, c) => {
-      const disc: Role = (Math.floor(r / 2) + Math.floor(c / 2)) % 2 ? 3 : 1
-      const q = (r % 2) * 2 + (c % 2)
-      return arc(disc, 0, [180, 270, 90, 0][q])
-    }),
-  },
   {
     id: 'moorish-star',
     name: 'Moorish Star',
-    category: 'Modern',
+    category: 'Persian & classical',
     origin: 'Concave four-point stars from Andalusian zellige tilework',
     colorwayId: 'kilim-red',
     build: cells((r, c) => arc(0, 1, [0, 90, 270, 180][(r % 2) * 2 + (c % 2)])),
+    decor: { border: 'border-greek-key', thickness: 0.5 },
   },
   {
-    id: 'deco-fan',
-    name: 'Deco Fan',
-    category: 'Modern',
-    origin: 'Art Deco fans, stacked like seigaiha waves',
-    colorwayId: 'midnight-gold',
-    build: cells((r, c) => {
-      const seq: Role[] = [1, 2, 0]
-      return arc(seq[r % 3], seq[mod(r - 1, 3)], (c + r) % 2 ? 270 : 180)
-    }),
-  },
-  {
-    id: 'checkerboard',
-    name: 'Checkerboard',
-    category: 'Modern',
-    origin: 'Quarter-turn tile layout in two contrasting tones',
-    colorwayId: 'berber-ivory',
-    build: cells((r, c) => [{ role: (r + c) % 2 ? 1 : 0, cut: 'full' }]),
-  },
-  {
-    id: 'tonal-brick',
-    name: 'Tonal Brick',
-    category: 'Modern',
-    origin: 'Ashlar / brick-bond carpet-tile installation, mixed tones',
-    colorwayId: 'atlas-clay',
-    build: pixels(4, (x, y) => {
-      const row = Math.floor(y / 2)
-      const brick = Math.floor((x + (row % 2) * 2) / 4)
-      // brick + 2 * row (mod 4) differs from all six neighbors, so every brick reads on its own.
-      return mod(brick + 2 * row, 4) as Role
-    }),
-  },
-
-  // Woven classics
-  {
-    id: 'houndstooth',
-    name: 'Houndstooth',
-    category: 'Woven Classics',
-    origin: 'Scottish Lowlands twill, four dark / four light',
-    colorwayId: 'berber-ivory',
-    build: pixels(4, (x, y) => twill(x, y, mod(x, 8) < 4 ? 1 : 0, mod(y, 8) < 4 ? 1 : 0)),
-  },
-  {
-    id: 'herringbone',
-    name: 'Herringbone',
-    category: 'Woven Classics',
-    origin: 'Broken twill reversing direction every column',
-    colorwayId: 'midnight-gold',
-    build: pixels(4, (x, y) => twill(x, y, 1, 0, Math.floor(x / 4) % 2 ? -1 : 1)),
-  },
-  {
-    id: 'tartan',
-    name: 'Tartan',
-    category: 'Woven Classics',
-    origin: 'Highland sett woven in twill, same stripes warp and weft',
-    colorwayId: 'oasis',
-    build: pixels(4, (x, y) => {
-      const sett: Role[] = [0, 0, 0, 0, 0, 1, 1, 3, 1, 1, 0, 0, 0, 0, 0, 2]
-      return twill(x, y, sett[x % 16], sett[y % 16])
-    }),
-  },
-  {
-    id: 'buffalo-check',
-    name: 'Buffalo Check',
-    category: 'Woven Classics',
-    origin: 'Oversized two-color check with a blended overlap',
+    id: 'turkmen-gul',
+    name: 'Turkmen Gul',
+    category: 'Tribal',
+    origin: 'Tekke Turkmen rugs: rows of quartered octagonal guls on a madder field',
     colorwayId: 'kilim-red',
-    build: cells((r, c) => [{ role: r % 2 && c % 2 ? 1 : r % 2 || c % 2 ? 2 : 3, cut: 'full' }]),
+    build: pixels(4, (x, y, Wp, Hp) => frame(x, y, Wp, Hp) ?? (mod(y, 8) === 7 && mod(x, 2) === 0 ? 1 : 0)),
+    decor: { border: 'border-kilim-lozenge', field: { id: 'gul-octagon', every: 1 } },
   },
   {
-    id: 'tattersall',
-    name: 'Tattersall',
-    category: 'Woven Classics',
-    origin: 'English country check: alternating fine overchecks',
-    colorwayId: 'atlas-clay',
-    build: pixels(4, (x, y) => (x % 8 === 0 || y % 8 === 0 ? 1 : x % 8 === 4 || y % 8 === 4 ? 3 : 0)),
-  },
-  {
-    id: 'basketweave',
-    name: 'Basketweave',
-    category: 'Woven Classics',
-    origin: 'Alternating plank directions, as in basketweave tile layouts',
-    colorwayId: 'berber-ivory',
-    build: pixels(4, (x, y) => {
-      const vertical = (Math.floor(x / 4) + Math.floor(y / 4)) % 2
-      return (vertical ? x : y) % 2 ? 2 : 0
+    id: 'herati-lattice',
+    name: 'Herati Lattice',
+    category: 'Persian & classical',
+    origin: 'The Herati "mahi" field of Persian rugs: a diamond lattice with rosettes',
+    colorwayId: 'midnight-gold',
+    build: pixels(4, (x, y, Wp, Hp) => {
+      const f = frame(x, y, Wp, Hp)
+      if (f !== null) return f
+      // A faint diamond trellis behind the Herati motifs.
+      return mod(x + y, 8) === 0 && mod(x - y, 8) === 0 ? 3 : 0
     }),
+    decor: { border: 'border-vine-scroll', field: { id: 'herati', every: 1 } },
+  },
+  {
+    id: 'mamluk-star',
+    name: 'Mamluk Star',
+    category: 'Persian & classical',
+    origin: 'Cairo Mamluk carpets: an eight-point star inside concentric octagons',
+    colorwayId: 'oasis',
+    build: pixels(4, (x, y, Wp, Hp) => {
+      const f = frame(x, y, Wp, Hp)
+      if (f !== null) return f
+      const ax = Math.abs(x - (Wp - 1) / 2)
+      const ay = Math.abs(y - (Hp - 1) / 2)
+      const r = Math.min(Wp, Hp) / 2
+      const oct = Math.max(ax, ay, (ax + ay) / 1.4) / r
+      const star = Math.min(ax + ay, Math.max(ax, ay) * 1.6) / r
+      if (star <= 0.32) return 3
+      if (oct <= 0.48) return 2
+      if (oct <= 0.56) return 1
+      if (oct <= 0.78) return mod(x + y, 4) === 0 ? 2 : 0
+      return 0
+    }),
+    decor: { border: 'border-reciprocal-trefoil', centre: { id: 'star-octagram', aspect: 1 } },
+  },
+  {
+    id: 'kazak-medallions',
+    name: 'Kazak Medallions',
+    category: 'Tribal',
+    origin: 'Caucasian Kazak rugs: bold stepped medallions stacked down the field',
+    colorwayId: 'atlas-clay',
+    build: pixels(4, (x, y, Wp, Hp) => frame(x, y, Wp, Hp) ?? 0),
+    decor: { border: 'border-sawtooth', centre: { id: 'medallion-caucasian', aspect: 1.32 }, field: { id: 'lozenge-small', every: 3 } },
+  },
+  {
+    id: 'gabbeh-field',
+    name: 'Gabbeh Field',
+    category: 'Tribal',
+    origin: 'Qashqai gabbeh: an open, softly banded field with a few small motifs',
+    colorwayId: 'atlas-clay',
+    build: pixels(4, (x, y, Wp, Hp) => {
+      // Abrash: the field's dye shifts in soft horizontal bands, as hand-dyed wool batches do.
+      const f = frame(x, y, Wp, Hp)
+      if (f !== null) return f
+      return hashAt(Math.floor(y / 5), 11) > 0.8 ? 2 : 0
+    }),
+    decor: { centre: { id: 'camel', aspect: 1.3, maxTiles: 2 } },
   },
 ]
 
-export const TEMPLATE_CATEGORIES: TemplateCategory[] = ['Heritage', 'Quilt', 'Modern', 'Woven Classics']
+export const TEMPLATE_CATEGORIES: TemplateCategory[] = ['Persian & classical', 'Tribal', 'Flatweave']
+
+/**
+ * Layouts that were retired (quilt blocks and suiting fabrics, not rugs), each pointed at the
+ * closest rug layout, so old shared links and drafts still open something sensible.
+ */
+const RETIRED_TEMPLATES: Record<string, string> = {
+  'flying-geese': 'kilim-chevron',
+  pinwheel: 'moorish-star',
+  'drunkards-path': 'moorish-star',
+  housetop: 'mamluk-star',
+  harlequin: 'kilim-stepped-diamond',
+  'bauhaus-circles': 'moorish-star',
+  'deco-fan': 'moorish-star',
+  checkerboard: 'turkmen-gul',
+  'tonal-brick': 'dhurrie-stripe',
+  houndstooth: 'ikat-diamond',
+  herringbone: 'kilim-chevron',
+  tartan: 'dhurrie-stripe',
+  'buffalo-check': 'turkmen-gul',
+  tattersall: 'herati-lattice',
+  basketweave: 'beni-ourain-lattice',
+}
 
 export function findTemplate(id: string | undefined) {
-  return PATTERN_TEMPLATES.find((t) => t.id === id)
+  const wanted = id && RETIRED_TEMPLATES[id] ? RETIRED_TEMPLATES[id] : id
+  return PATTERN_TEMPLATES.find((t) => t.id === wanted)
 }
 
 export function findColorway(id: string | undefined) {
@@ -422,5 +380,42 @@ export function applyTemplate(
   }
   // Palette in role order (ground first), so the designer's first brush is the ground color.
   const myStyles = [...new Set(ids)].filter((id): id is string => !!id && used.has(id))
-  return { ...base, name: `${template.name} - ${colorway.name}`, tiles, myStyles }
+  const laid = { ...base, name: `${template.name} - ${colorway.name}`, tiles, myStyles }
+  return template.decor ? { ...laid, overlays: decorOverlays(laid, template.decor) } : laid
+}
+
+/**
+ * A template's woven detail as designer overlays (so it can be edited like any other): the
+ * border frame round the edge, the centre piece in the middle of the field, and the field motif
+ * repeated around it. Anything that doesn't fit the rug's size is left out.
+ */
+export function decorOverlays(state: TileDesignState, decor: TemplateDecor): DesignOverlay[] {
+  const { widthTiles: W, heightTiles: H } = state
+  const out: DesignOverlay[] = []
+  const fits = (o: DesignOverlay) => canPlaceOverlay(state, o) && !out.some((x) => footprintsOverlap(x, o))
+  const thickness = decor.thickness ?? 1
+  const inset = decor.border && W >= 3 && H >= 3 ? 1 : 0
+  if (inset) out.push(...frameRuns(state, decor.border!, thickness, 'tpl-frame'))
+  const fw = W - inset * 2
+  const fh = H - inset * 2
+  if (decor.centre && fw >= 1 && fh >= 1) {
+    // As large as the field allows (leaving a tile round it on bigger rugs), centred.
+    const room = fw >= 5 && fh >= 5 ? 2 : 0
+    // Shrink a tile when that lets it sit exactly in the middle; otherwise it sits half a tile off.
+    let w = Math.max(1, Math.min(fw - room, Math.floor((fh - room) / decor.centre.aspect), decor.centre.maxTiles ?? Infinity))
+    if ((fw - w) % 2 && w > 1) w--
+    let h = Math.max(1, Math.min(fh - room, Math.round(w * decor.centre.aspect)))
+    if ((fh - h) % 2 && h > 1) h--
+    const o: DesignOverlay = { id: 'tpl-centre', assetId: decor.centre.id, row: inset + Math.floor((fh - h) / 2), col: inset + Math.floor((fw - w) / 2), widthTiles: w, heightTiles: h, rotation: 0 }
+    if (fits(o)) out.push(o)
+  }
+  if (decor.field && fw >= 2 && fh >= 2) {
+    const step = decor.field.every
+    for (let r = inset + Math.floor(((fh - 1) % step) / 2); r < H - inset; r += step)
+      for (let c = inset + Math.floor(((fw - 1) % step) / 2); c < W - inset; c += step) {
+        const o: DesignOverlay = { id: `tpl-f-${r}-${c}`, assetId: decor.field.id, row: r, col: c, widthTiles: 1, heightTiles: 1, rotation: 0 }
+        if (fits(o)) out.push(o)
+      }
+  }
+  return out
 }

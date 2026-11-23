@@ -8,5 +8,6 @@ import { Swatch } from './entities/swatch.entity';
   imports: [TypeOrmModule.forFeature([Swatch])],
   controllers: [SwatchesController],
   providers: [SwatchesService],
+  exports: [SwatchesService],
 })
 export class SwatchesModule {}

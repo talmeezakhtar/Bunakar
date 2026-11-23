@@ -31,9 +31,9 @@ const TONE_ICON = {
 } as const
 
 const TONE_ACCENT: Record<ToastTone, string> = {
-  success: 'border-gold-500/50 text-gold-400',
-  error: 'border-red-400/50 text-red-400',
-  info: 'border-night-600 text-sand-300',
+  success: 'border-success/40 text-success',
+  error: 'border-danger/40 text-danger',
+  info: 'border-line-strong text-muted',
 }
 
 const DEFAULT_DURATION = 6000
@@ -68,18 +68,18 @@ function ToastProvider({ children }: { children: ReactNode }) {
               key={t.id}
               role={t.tone === 'error' ? 'alert' : 'status'}
               aria-live={t.tone === 'error' ? 'assertive' : 'polite'}
-              className={`pointer-events-auto flex w-full max-w-sm items-start gap-2.5 rounded-xl border bg-night-900/95 px-4 py-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur ${TONE_ACCENT[t.tone]}`}
+              className={`pointer-events-auto flex w-full max-w-sm items-start gap-2.5 rounded-xl border bg-surface/95 px-4 py-3 shadow-[0_24px_60px_-20px_rgba(31,27,22,0.35)] backdrop-blur ${TONE_ACCENT[t.tone]}`}
             >
               <Icon size={18} className="mt-0.5 shrink-0" weight="fill" />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-sand-100">{t.message}</p>
+                <p className="text-sm font-medium text-ink">{t.message}</p>
                 {t.detail && (
                   <input
                     readOnly
                     value={t.detail}
                     aria-label="Link to copy"
                     onFocus={(e) => e.currentTarget.select()}
-                    className="mt-1.5 w-full rounded-md border border-night-600 bg-night-950 px-2 py-1 text-xs text-sand-300 focus:border-gold-500 focus:outline-none"
+                    className="mt-1.5 w-full rounded-md border border-line-strong bg-paper px-2 py-1 text-xs text-muted focus:border-accent"
                   />
                 )}
                 {t.action && (
@@ -89,7 +89,7 @@ function ToastProvider({ children }: { children: ReactNode }) {
                       t.action!.onClick()
                       dismiss(t.id)
                     }}
-                    className="mt-1.5 text-xs font-semibold text-gold-400 underline decoration-gold-500/40 underline-offset-2 hover:text-gold-300"
+                    className="mt-1.5 text-xs font-semibold text-accent-hover underline decoration-accent/40 underline-offset-2 hover:text-accent-deep"
                   >
                     {t.action.label}
                   </button>
@@ -99,7 +99,7 @@ function ToastProvider({ children }: { children: ReactNode }) {
                 type="button"
                 onClick={() => dismiss(t.id)}
                 aria-label="Dismiss notification"
-                className="shrink-0 rounded-full p-0.5 text-sand-400 transition-colors hover:text-sand-100"
+                className="shrink-0 rounded-full p-0.5 text-muted-2 transition-colors hover:text-ink"
               >
                 <X size={14} />
               </button>

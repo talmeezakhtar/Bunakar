@@ -156,3 +156,10 @@ dist/
 *.log
 # Local design-review tool notes and cache
 .impeccable/
+
+# Local tool output: browser profiles, test runs
+frontend/.taste-skill/
+frontend/test-results/
+frontend/playwright-report/
+# Raw reference pictures (rights unconfirmed; published crops live in public/)
+frontend/assets-src/rugs/

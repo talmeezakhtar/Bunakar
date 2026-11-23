@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Swatch } from '../../types/swatch'
 import type { DesignOverlay, TileDesignState } from '../../types/tileDesign'
-import { findDesignAsset } from '../../data/designAssets'
+import type { PaletteInput } from '../../data/motifs/palette'
 import { tileKey } from '../../types/tileDesign'
 import { cutPath, isPositionable } from './cutShapes'
 
@@ -69,7 +69,10 @@ export function renderTileFills(state: TileDesignState, swatchesById: Map<string
       }
     }
   }
-  return [tilePatternDefs(used.values(), prefix), ...fills, ...renderOverlays(state.overlays, prefix)]
+  const tintColor = (id: string) => swatchesById.get(id)?.swatchColor
+  const overlays =
+    state.overlays.length > 0 && overlayRenderer ? overlayRenderer(state.overlays, prefix, { palette: rugPalette(state, swatchesById), tintColor }) : []
+  return [tilePatternDefs(used.values(), prefix), ...fills, ...overlays]
 }
 
 /**
@@ -96,60 +99,28 @@ export function weaveFilter(id: string): ReactNode {
   )
 }
 
-/** Design pieces and border runs, drawn over the tile fills in placement order. */
-export function renderOverlays(overlays: DesignOverlay[], prefix: string, finish = true): ReactNode[] {
-  if (overlays.length === 0) return []
-  const filterId = `${prefix}-weave`
-  const filter = finish ? `url(#${filterId})` : undefined
-  const out: ReactNode[] = finish ? [<defs key="overlay-defs">{weaveFilter(filterId)}</defs>] : []
-  for (const o of overlays) {
-    const asset = findDesignAsset(o.assetId)
-    if (!asset) continue
-    const { widthTiles: w, heightTiles: h } = o
-    // Work in the art's own upright frame (sides swap for 90/270), centred on the footprint.
-    const sideways = o.rotation === 90 || o.rotation === 270
-    const bw = sideways ? h : w
-    const bh = sideways ? w : h
-    const frame = `translate(${o.col + w / 2} ${o.row + h / 2}) rotate(${o.rotation}) translate(${-bw / 2} ${-bh / 2})`
-    if (asset.kind === 'border') {
-      // Strip hugs the frame's top edge (its outer edge); one repeat is `aspect` strip-heights
-      // long, offset so the run is symmetric end to end.
-      const t = o.thickness ?? 0.5
-      const reach = o.reach ?? 0
-      const length = bw + 2 * reach
-      const period = asset.aspect * t
-      const offset = -reach + ((length % period) - period) / 2
-      const pid = `${prefix}-run-${o.id}`
-      out.push(
-        <g key={o.id} filter={filter}>
-          <g transform={frame}>
-            <defs>
-              <pattern id={pid} patternUnits="userSpaceOnUse" x={offset} y={0} width={period} height={t}>
-                <image href={asset.url} width={period} height={t} preserveAspectRatio="none" />
-              </pattern>
-            </defs>
-            <rect x={-reach} width={length} height={t} fill={`url(#${pid})`} />
-          </g>
-        </g>,
-      )
-    } else {
-      // A little breathing room inside the footprint, like a motif set into its field.
-      const inset = 0.06
-      out.push(
-        <g key={o.id} filter={filter}>
-          <g transform={frame}>
-            <image
-              href={asset.url}
-              x={inset}
-              y={inset}
-              width={bw - 2 * inset}
-              height={bh - 2 * inset}
-              preserveAspectRatio="xMidYMid meet"
-            />
-          </g>
-        </g>,
-      )
+/** The rug's colours weighted by how many tiles use them - what motifs take their colours from. */
+export function rugPalette(state: Pick<TileDesignState, 'tiles'>, swatchesById: Map<string, Swatch>): PaletteInput {
+  const weight = new Map<string, number>()
+  for (const pieces of Object.values(state.tiles)) {
+    for (const piece of pieces) {
+      const color = swatchesById.get(piece.swatchId)?.swatchColor
+      if (color) weight.set(color, (weight.get(color) ?? 0) + 1 / pieces.length)
     }
   }
-  return out
+  return [...weight].map(([color, w]) => ({ color, weight: w }))
+}
+
+export type OverlayColors = {
+  palette: PaletteInput
+  /** Resolves an overlay's `tint` (a swatch id) to a colour. */
+  tintColor?: (swatchId: string) => string | undefined
+}
+
+type OverlayRenderer = (overlays: DesignOverlay[], prefix: string, colors: OverlayColors, finish?: boolean) => ReactNode[]
+let overlayRenderer: OverlayRenderer | null = null
+
+/** Called by `renderOverlays.tsx` when it loads (see there for why it is separate). */
+export function registerOverlayRenderer(fn: OverlayRenderer) {
+  overlayRenderer = fn
 }

@@ -7,30 +7,37 @@ import { AuthModule } from './auth/auth.module';
 import { SwatchesModule } from './swatches/swatches.module';
 import { TileDesignsModule } from './tile-designs/tile-designs.module';
 import { FreeformDesignsModule } from './freeform-designs/freeform-designs.module';
+import { DesignQuotaModule } from './common/designs/design-quota.module';
+import { InboxModule } from './inbox/inbox.module';
+import { RugDesignsModule } from './rug-designs/rug-designs.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        url: config.get<string>('DATABASE_URL'),
-        autoLoadEntities: true,
-        // Creates/updates tables from the entities. On by default outside production; in
-        // production it must be switched on explicitly (DB_SYNCHRONIZE=true) - without it and
-        // with no migrations, a fresh database has no tables and the app fails on boot.
-        // ponytail: schema sync instead of migrations - add TypeORM migrations before real data
-        // lives in production, since sync can drop columns when an entity changes.
-        synchronize:
-          config.get<string>('NODE_ENV') !== 'production' ||
-          config.get<string>('DB_SYNCHRONIZE') === 'true',
-      }),
+      useFactory: (config: ConfigService) => {
+        const test = config.get<string>('NODE_ENV') === 'test';
+        return {
+          type: 'postgres',
+          url: config.get<string>('DATABASE_URL'),
+          autoLoadEntities: true,
+          // The schema comes from migrations (src/migrations), run on every boot, so a fresh
+          // database gets every table and an existing one gets what it is missing. Schema sync
+          // is only for tests, which build a throwaway schema straight from the entities.
+          migrations: [`${__dirname}/migrations/*{.ts,.js}`],
+          migrationsRun: !test,
+          synchronize: test,
+        };
+      },
     }),
+    DesignQuotaModule,
     AuthModule,
     SwatchesModule,
     TileDesignsModule,
     FreeformDesignsModule,
+    InboxModule,
+    RugDesignsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

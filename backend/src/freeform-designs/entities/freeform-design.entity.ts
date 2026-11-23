@@ -74,6 +74,10 @@ export class FreeformDesign {
   @Column({ type: 'jsonb', default: () => "'[]'" })
   myStyles: string[];
 
+  /** Small webp data URL drawn by the client on save, shown in design lists. */
+  @Column({ type: 'text', nullable: true })
+  thumbnail: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -1,5 +1,7 @@
+/** `code` is the id clients use; it must match frontend/src/data/mockSwatches.ts. */
 export const SWATCH_SEED = [
   {
+    code: 'solid-wine',
     familyId: 'solid',
     familyName: 'Solid Weave',
     colorName: 'Wine',
@@ -7,6 +9,7 @@ export const SWATCH_SEED = [
     categories: ['Solid Color'],
   },
   {
+    code: 'solid-gold',
     familyId: 'solid',
     familyName: 'Solid Weave',
     colorName: 'Gold',
@@ -14,6 +17,7 @@ export const SWATCH_SEED = [
     categories: ['Solid Color'],
   },
   {
+    code: 'solid-ivory',
     familyId: 'solid',
     familyName: 'Solid Weave',
     colorName: 'Ivory',
@@ -21,6 +25,7 @@ export const SWATCH_SEED = [
     categories: ['Solid Color'],
   },
   {
+    code: 'solid-navy',
     familyId: 'solid',
     familyName: 'Solid Weave',
     colorName: 'Navy',
@@ -28,6 +33,7 @@ export const SWATCH_SEED = [
     categories: ['Solid Color'],
   },
   {
+    code: 'solid-forest',
     familyId: 'solid',
     familyName: 'Solid Weave',
     colorName: 'Forest',
@@ -35,6 +41,7 @@ export const SWATCH_SEED = [
     categories: ['Solid Color'],
   },
   {
+    code: 'geo-emerald',
     familyId: 'geometric-bloom',
     familyName: 'Geometric Bloom',
     colorName: 'Emerald',
@@ -42,6 +49,7 @@ export const SWATCH_SEED = [
     categories: ['Geometric'],
   },
   {
+    code: 'geo-clay',
     familyId: 'geometric-bloom',
     familyName: 'Geometric Bloom',
     colorName: 'Clay',
@@ -49,6 +57,7 @@ export const SWATCH_SEED = [
     categories: ['Geometric'],
   },
   {
+    code: 'geo-slate',
     familyId: 'geometric-bloom',
     familyName: 'Geometric Bloom',
     colorName: 'Slate',
@@ -56,6 +65,7 @@ export const SWATCH_SEED = [
     categories: ['Geometric'],
   },
   {
+    code: 'persian-wine',
     familyId: 'persian-medallion',
     familyName: 'Persian Medallion',
     colorName: 'Wine & Gold',
@@ -63,6 +73,7 @@ export const SWATCH_SEED = [
     categories: ['Persian Floral'],
   },
   {
+    code: 'persian-navy',
     familyId: 'persian-medallion',
     familyName: 'Persian Medallion',
     colorName: 'Navy & Ivory',
@@ -70,6 +81,7 @@ export const SWATCH_SEED = [
     categories: ['Persian Floral'],
   },
   {
+    code: 'tribal-clay',
     familyId: 'tribal-weave',
     familyName: 'Tribal Weave',
     colorName: 'Clay & Gold',
@@ -77,6 +89,7 @@ export const SWATCH_SEED = [
     categories: ['Tribal'],
   },
   {
+    code: 'tribal-charcoal',
     familyId: 'tribal-weave',
     familyName: 'Tribal Weave',
     colorName: 'Charcoal',
@@ -87,6 +100,7 @@ export const SWATCH_SEED = [
   // Carpet tiles - photographed tiles; swatchColor is each photo's average, used while it loads.
   // Strata
   {
+    code: 'strata-graphite-taupe',
     familyId: 'strata',
     familyName: 'Strata',
     colorName: 'Graphite Taupe',
@@ -95,6 +109,7 @@ export const SWATCH_SEED = [
     categories: ['Linear'],
   },
   {
+    code: 'strata-silver',
     familyId: 'strata',
     familyName: 'Strata',
     colorName: 'Silver',
@@ -103,6 +118,7 @@ export const SWATCH_SEED = [
     categories: ['Linear'],
   },
   {
+    code: 'strata-pewter',
     familyId: 'strata',
     familyName: 'Strata',
     colorName: 'Pewter',
@@ -111,6 +127,7 @@ export const SWATCH_SEED = [
     categories: ['Linear'],
   },
   {
+    code: 'strata-ash',
     familyId: 'strata',
     familyName: 'Strata',
     colorName: 'Ash',
@@ -119,6 +136,7 @@ export const SWATCH_SEED = [
     categories: ['Linear'],
   },
   {
+    code: 'strata-slate',
     familyId: 'strata',
     familyName: 'Strata',
     colorName: 'Slate',
@@ -127,6 +145,7 @@ export const SWATCH_SEED = [
     categories: ['Linear'],
   },
   {
+    code: 'strata-midnight',
     familyId: 'strata',
     familyName: 'Strata',
     colorName: 'Midnight',
@@ -136,6 +155,7 @@ export const SWATCH_SEED = [
   },
   // Heather Loop
   {
+    code: 'heather-loop-cadet-blue',
     familyId: 'heather-loop',
     familyName: 'Heather Loop',
     colorName: 'Cadet Blue',
@@ -144,6 +164,7 @@ export const SWATCH_SEED = [
     categories: ['Textured Solid'],
   },
   {
+    code: 'heather-loop-stone',
     familyId: 'heather-loop',
     familyName: 'Heather Loop',
     colorName: 'Stone',
@@ -152,6 +173,7 @@ export const SWATCH_SEED = [
     categories: ['Textured Solid'],
   },
   {
+    code: 'heather-loop-chalk',
     familyId: 'heather-loop',
     familyName: 'Heather Loop',
     colorName: 'Chalk',
@@ -160,6 +182,7 @@ export const SWATCH_SEED = [
     categories: ['Textured Solid'],
   },
   {
+    code: 'heather-loop-juniper',
     familyId: 'heather-loop',
     familyName: 'Heather Loop',
     colorName: 'Juniper',
@@ -169,6 +192,7 @@ export const SWATCH_SEED = [
   },
   // Drift
   {
+    code: 'drift-umber',
     familyId: 'drift',
     familyName: 'Drift',
     colorName: 'Umber',
@@ -177,6 +201,7 @@ export const SWATCH_SEED = [
     categories: ['Organic'],
   },
   {
+    code: 'drift-sandstone',
     familyId: 'drift',
     familyName: 'Drift',
     colorName: 'Sandstone',
@@ -185,6 +210,7 @@ export const SWATCH_SEED = [
     categories: ['Organic'],
   },
   {
+    code: 'drift-smoke',
     familyId: 'drift',
     familyName: 'Drift',
     colorName: 'Smoke',
@@ -194,6 +220,7 @@ export const SWATCH_SEED = [
   },
   // Basketweave
   {
+    code: 'basketweave-onyx',
     familyId: 'basketweave',
     familyName: 'Basketweave',
     colorName: 'Onyx',
@@ -203,6 +230,7 @@ export const SWATCH_SEED = [
   },
   // Crescent
   {
+    code: 'crescent-denim',
     familyId: 'crescent',
     familyName: 'Crescent',
     colorName: 'Denim',
@@ -212,6 +240,7 @@ export const SWATCH_SEED = [
   },
   // Lattice
   {
+    code: 'lattice-harbor',
     familyId: 'lattice',
     familyName: 'Lattice',
     colorName: 'Harbor',
@@ -221,6 +250,7 @@ export const SWATCH_SEED = [
   },
   // Tweed
   {
+    code: 'tweed-charcoal-check',
     familyId: 'tweed',
     familyName: 'Tweed',
     colorName: 'Charcoal Check',
@@ -231,6 +261,7 @@ export const SWATCH_SEED = [
 
   // Tufted Wool - solid yarn colours for hand-tufted freeform rugs (sampled from reference rugs)
   {
+    code: 'wool-ivory',
     familyId: 'tufted-wool',
     familyName: 'Tufted Wool',
     colorName: 'Ivory',
@@ -238,6 +269,7 @@ export const SWATCH_SEED = [
     categories: ['Tufted Wool'],
   },
   {
+    code: 'wool-oat',
     familyId: 'tufted-wool',
     familyName: 'Tufted Wool',
     colorName: 'Oat',
@@ -245,6 +277,7 @@ export const SWATCH_SEED = [
     categories: ['Tufted Wool'],
   },
   {
+    code: 'wool-sand',
     familyId: 'tufted-wool',
     familyName: 'Tufted Wool',
     colorName: 'Sand',
@@ -252,6 +285,7 @@ export const SWATCH_SEED = [
     categories: ['Tufted Wool'],
   },
   {
+    code: 'wool-camel',
     familyId: 'tufted-wool',
     familyName: 'Tufted Wool',
     colorName: 'Camel',
@@ -259,6 +293,7 @@ export const SWATCH_SEED = [
     categories: ['Tufted Wool'],
   },
   {
+    code: 'wool-blush',
     familyId: 'tufted-wool',
     familyName: 'Tufted Wool',
     colorName: 'Blush',
@@ -266,6 +301,7 @@ export const SWATCH_SEED = [
     categories: ['Tufted Wool'],
   },
   {
+    code: 'wool-coral',
     familyId: 'tufted-wool',
     familyName: 'Tufted Wool',
     colorName: 'Coral',
@@ -273,6 +309,7 @@ export const SWATCH_SEED = [
     categories: ['Tufted Wool'],
   },
   {
+    code: 'wool-terracotta',
     familyId: 'tufted-wool',
     familyName: 'Tufted Wool',
     colorName: 'Terracotta',
@@ -280,6 +317,7 @@ export const SWATCH_SEED = [
     categories: ['Tufted Wool'],
   },
   {
+    code: 'wool-mustard',
     familyId: 'tufted-wool',
     familyName: 'Tufted Wool',
     colorName: 'Mustard',
@@ -287,6 +325,7 @@ export const SWATCH_SEED = [
     categories: ['Tufted Wool'],
   },
   {
+    code: 'wool-aqua',
     familyId: 'tufted-wool',
     familyName: 'Tufted Wool',
     colorName: 'Aqua',
@@ -294,6 +333,7 @@ export const SWATCH_SEED = [
     categories: ['Tufted Wool'],
   },
   {
+    code: 'wool-petrol',
     familyId: 'tufted-wool',
     familyName: 'Tufted Wool',
     colorName: 'Petrol',
@@ -301,6 +341,7 @@ export const SWATCH_SEED = [
     categories: ['Tufted Wool'],
   },
   {
+    code: 'wool-sage',
     familyId: 'tufted-wool',
     familyName: 'Tufted Wool',
     colorName: 'Sage',
@@ -308,6 +349,7 @@ export const SWATCH_SEED = [
     categories: ['Tufted Wool'],
   },
   {
+    code: 'wool-stone',
     familyId: 'tufted-wool',
     familyName: 'Tufted Wool',
     colorName: 'Stone',
@@ -315,6 +357,7 @@ export const SWATCH_SEED = [
     categories: ['Tufted Wool'],
   },
   {
+    code: 'wool-graphite',
     familyId: 'tufted-wool',
     familyName: 'Tufted Wool',
     colorName: 'Graphite',
@@ -322,6 +365,7 @@ export const SWATCH_SEED = [
     categories: ['Tufted Wool'],
   },
   {
+    code: 'wool-charcoal',
     familyId: 'tufted-wool',
     familyName: 'Tufted Wool',
     colorName: 'Charcoal',

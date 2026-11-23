@@ -1,147 +1,142 @@
-import { useEffect, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, useAnimationControls, useInView, useReducedMotion } from 'motion/react'
-import palaceImg from '../../assets/palace-bg.webp'
-import aladdinImg from '../../assets/aladdin-carpet.webp'
+import { ArrowRight } from '@phosphor-icons/react'
+import { motion, useReducedMotion } from 'motion/react'
+import { MOCK_SWATCHES } from '../../data/mockSwatches'
+import { COLORWAYS, findTemplate } from '../../data/patternTemplates'
+import type { Colorway } from '../../data/patternTemplates'
+import { applyTemplate } from '../../data/patternTemplates'
+import { ROOM_PHOTOS } from '../../data/roomPhotos'
+import { createDefaultTileDesign } from '../../types/tileDesign'
+import RugPhotoSlide from '../tileDesigner/RugPhotoSlide'
+import type { RugArt } from '../tileDesigner/RugPhotoSlide'
+import { introDelay } from '../../utils/intro'
+import { renderTileFills } from '../tileDesigner/renderTiles'
 
-// The carpet's shadow reads its height: higher = softer, wider, fainter. Same structure in
-// every value so Motion can interpolate between them.
-const SHADOW_FAR = 'drop-shadow(0px 50px 55px rgba(0,0,0,0.15))'
-const SHADOW_REST = 'drop-shadow(0px 25px 35px rgba(0,0,0,0.5))'
-const SHADOW_HIGH = 'drop-shadow(0px 34px 44px rgba(0,0,0,0.36))'
+const SWATCHES_BY_ID = new Map(MOCK_SWATCHES.map((s) => [s.id, s]))
+const HERO_ROOM = ROOM_PHOTOS.find((p) => p.id === 'area-2') ?? ROOM_PHOTOS[0]
+const HERO_TEMPLATE = findTemplate('persian-medallion')
+// A 9 x 6 ft rug: 6 x 4 of the 18" tiles, the proportions of the rug space in the photo.
+const HERO_SIZE = { w: 6, h: 4 }
 
+function swatchColor([familyId, colorName]: readonly [string, string]) {
+  return MOCK_SWATCHES.find((s) => s.familyId === familyId && s.colorName === colorName)?.swatchColor ?? '#ccc'
+}
+
+function heroRug(colorway: Colorway): RugArt {
+  const state = HERO_TEMPLATE
+    ? applyTemplate(createDefaultTileDesign(HERO_SIZE.w, HERO_SIZE.h), HERO_TEMPLATE, colorway, MOCK_SWATCHES)
+    : createDefaultTileDesign(HERO_SIZE.w, HERO_SIZE.h)
+  return { width: HERO_SIZE.w, height: HERO_SIZE.h, render: (prefix) => renderTileFills(state, SWATCHES_BY_ID, prefix) }
+}
+
+/** Five colourway chips; the hero rug (photo or 3D) follows the one picked. */
+export function ColourwayPicker({ value, onChange, onDark = false }: { value: string; onChange: (id: string) => void; onDark?: boolean }) {
+  return (
+    <div role="radiogroup" aria-label="Try a colourway" className="flex gap-1.5">
+      {COLORWAYS.map((c) => {
+        const selected = c.id === value
+        return (
+          <button
+            key={c.id}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            aria-label={c.name}
+            title={c.name}
+            onClick={() => onChange(c.id)}
+            className={`flex h-11 w-11 items-center justify-center rounded-full transition-transform hover:-translate-y-0.5 ${
+              selected ? `ring-2 ring-ink ring-offset-2 ${onDark ? 'ring-offset-transparent' : 'ring-offset-paper'}` : ''
+            }`}
+          >
+            <span className="grid h-8 w-8 grid-cols-2 overflow-hidden rounded-full ring-1 ring-black/10">
+              {c.roles.map((role, i) => (
+                <span key={i} style={{ backgroundColor: swatchColor(role) }} />
+              ))}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+export function HeroCopy({ enter }: { enter: (delay: number) => object }) {
+  return (
+    <>
+      <motion.h1
+        {...enter(0)}
+        className="font-display text-[clamp(2.5rem,5.4vw,4.6rem)] font-medium leading-[1.02] tracking-[-0.02em] text-ink"
+      >
+        Design your own hand-knotted rug.
+      </motion.h1>
+      <motion.p {...enter(0.12)} className="mt-6 max-w-md text-lg leading-relaxed text-ink-2 max-lg:hidden">
+        Draw it knot by knot, start from a Persian classic, or turn a photo into a chart. See it woven in a room, then hand
+        the weavers of Bhadohi a chart they can knot from.
+      </motion.p>
+      <motion.div {...enter(0.24)} className="mt-8 flex flex-wrap items-center gap-3 max-lg:mt-4">
+        <Link
+          to="/studio?new=1"
+          className="group inline-flex min-h-12 items-center gap-2 rounded-full bg-accent px-6 text-base font-semibold text-paper transition-[background-color,transform] duration-200 hover:bg-accent-hover active:scale-[0.98]"
+        >
+          Design your rug
+          <ArrowRight size={18} weight="bold" className="transition-transform duration-200 group-hover:translate-x-0.5" />
+        </Link>
+        <Link
+          to="/#how-it-works"
+          className="inline-flex min-h-12 items-center rounded-full px-5 text-base font-medium text-ink underline decoration-line-strong underline-offset-[6px] transition-colors hover:decoration-ink"
+        >
+          How it works
+        </Link>
+      </motion.div>
+      <motion.p {...enter(0.32)} className="mt-6 text-sm text-ink-2 max-lg:hidden">
+        <span className="font-semibold text-ink">Free to start.</span>{' '}
+        <Link to="/pricing" className="underline decoration-line-strong underline-offset-4 hover:text-accent">
+          Pro
+        </Link>{' '}
+        adds unlimited designs and production exports.
+      </motion.p>
+    </>
+  )
+}
+
+/** The 2D hero, for devices without WebGL (the 3D tour replaces it everywhere else). */
 function Hero() {
   const reduce = useReducedMotion()
-  const riderControls = useAnimationControls()
-  const sectionRef = useRef<HTMLElement>(null)
-  const inView = useInView(sectionRef)
-  const [landed, setLanded] = useState(false)
+  const [colorwayId, setColorwayId] = useState('kilim-red')
+  const colorway = COLORWAYS.find((c) => c.id === colorwayId) ?? COLORWAYS[0]
+  const rug = useMemo(() => heroRug(colorway), [colorway])
 
-  useEffect(() => {
-    if (reduce) {
-      riderControls.set({ x: 0, y: 0, rotate: 0, opacity: 1, scale: 1, filter: SHADOW_REST })
-      return
-    }
-    let cancelled = false
-    riderControls
-      .start({
-        x: ['-62vw', '-16vw', '0vw'],
-        y: ['-40vh', '3vh', '0vh'],
-        rotate: [-18, 5, 0],
-        opacity: [0, 1, 1],
-        scale: [0.7, 1.04, 1],
-        filter: [SHADOW_FAR, SHADOW_REST, SHADOW_REST],
-        transition: {
-          duration: 2.8,
-          delay: 0.3,
-          times: [0, 0.72, 1],
-          ease: ['easeIn', 'easeOut'],
-        },
-      })
-      .then(() => {
-        if (!cancelled) setLanded(true)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [reduce, riderControls])
-
-  // Hover on the air once landed: the tilt runs on a different period than the bob so the
-  // carpet never repeats the same pose, and the loop parks whenever the hero is scrolled away.
-  useEffect(() => {
-    if (!landed || reduce) return
-    if (!inView) {
-      riderControls.start({ y: '0vh', rotate: 0, filter: SHADOW_REST, transition: { duration: 0.4 } })
-      return
-    }
-    const bob = { duration: 3.8, repeat: Infinity, ease: 'easeInOut' } as const
-    riderControls.start({
-      y: ['0vh', '-1.2vh', '0vh'],
-      filter: [SHADOW_REST, SHADOW_HIGH, SHADOW_REST],
-      rotate: [0, 1.4, 0, -1.4, 0],
-      transition: {
-        y: bob,
-        filter: bob,
-        rotate: { duration: 5.3, repeat: Infinity, ease: 'easeInOut' },
-      },
-    })
-  }, [landed, inView, reduce, riderControls])
-
-  // Copy lands while the carpet is still in flight - nobody waits out the entrance to read.
-  const textDelayBase = reduce ? 0 : 0.6
+  const enter = (delay: number) =>
+    reduce
+      ? {}
+      : {
+          initial: { opacity: 0, y: 18 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.8, delay: delay + introDelay(), ease: [0.22, 1, 0.36, 1] as const },
+        }
 
   return (
-    <section ref={sectionRef} className="relative h-[100dvh] overflow-hidden bg-night-950">
-      <motion.div
-        className="absolute inset-0"
-        initial={reduce ? false : { opacity: 0, scale: 1.08 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 2, ease: [0.16, 1, 0.3, 1] }}
-      >
-        <img
-          src={palaceImg}
-          alt="A golden-domed palace above a lantern-lit desert town at sunset"
-          width={1199}
-          height={595}
-          // The largest thing in the first view: fetch it ahead of everything else.
-          fetchPriority="high"
-          className="h-full w-full object-cover object-bottom"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-night-950/70 via-night-950/15 to-night-950" />
-        <div className="absolute inset-0 bg-night-950/20" />
-      </motion.div>
-
-      <div className="relative z-10 grid h-full grid-rows-[1fr_auto] px-4 pb-[3%] pt-16 sm:pt-20">
-        <div className="flex min-h-0 items-center justify-center overflow-hidden">
-          <motion.img
-            src={aladdinImg}
-            alt="A rider soaring on a flying carpet"
-            width={900}
-            height={640}
-            initial={
-              reduce
-                ? false
-                : { x: '-62vw', y: '-40vh', rotate: -18, opacity: 0, scale: 0.7, filter: SHADOW_FAR }
-            }
-            animate={riderControls}
-            style={reduce ? { filter: SHADOW_REST } : undefined}
-            className="h-[clamp(100px,24vh,300px)] max-h-full w-auto select-none"
-          />
+    <section className="relative overflow-x-clip bg-paper pt-16">
+      <div className="mx-auto grid min-h-[calc(100svh-4rem)] max-w-6xl items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14 lg:py-14">
+        <div className="max-w-xl">
+          <HeroCopy enter={enter} />
         </div>
-
-        <div className="flex flex-col items-center pb-2 text-center">
-          <motion.h1
-            initial={reduce ? false : { opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: textDelayBase }}
-            className="max-w-2xl text-balance font-display text-[clamp(1.75rem,5vw,3.75rem)] leading-tight tracking-wide text-sand-100"
-          >
-            Let&apos;s Weave a Rug
-          </motion.h1>
-
-          <motion.p
-            initial={reduce ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: textDelayBase + 0.25 }}
-            className="mt-3 max-w-md text-balance text-[clamp(0.85rem,1.6vw,1.125rem)] text-sand-300 sm:mt-5"
-          >
-            Design a handwoven rug your way. Pick the shape, pattern and colors, then watch your carpet come to life.
-          </motion.p>
-
-          <motion.div
-            className="mt-5 sm:mt-9"
-            initial={reduce ? false : { opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'spring', stiffness: 260, damping: 18, delay: textDelayBase + 0.5 }}
-          >
-            <Link
-              to="/#create-design"
-              className="inline-flex items-center rounded-full bg-gold-500 px-6 py-3 font-sans text-sm font-semibold tracking-wide text-night-950 shadow-[0_10px_30px_rgba(217,164,65,0.35)] transition-transform hover:-translate-y-0.5 hover:bg-gold-400 active:translate-y-0 active:scale-[0.98] sm:px-8 sm:py-3.5"
-            >
-              Let&apos;s Design
-            </Link>
-          </motion.div>
-        </div>
+        <motion.div
+          initial={reduce ? false : { opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <div className="overflow-hidden rounded-[var(--radius-card)] shadow-[var(--shadow-soft)] ring-1 ring-line">
+            <RugPhotoSlide photo={HERO_ROOM} rug={rug} />
+          </div>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted">
+              <span className="font-medium text-ink">{HERO_TEMPLATE?.name}</span> &middot; 9 &times; 6 ft &middot; {colorway.name}
+            </p>
+            <ColourwayPicker value={colorway.id} onChange={setColorwayId} />
+          </div>
+        </motion.div>
       </div>
     </section>
   )

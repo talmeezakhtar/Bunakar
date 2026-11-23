@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { TileDesignsService } from './tile-designs.service';
@@ -32,8 +33,14 @@ export class TileDesignsController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  findMine(@CurrentUser() user: AuthenticatedUser) {
-    return this.tileDesignsService.findAllForUser(user.userId);
+  findMine(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('summary') summary?: string,
+  ) {
+    // ?summary=1 lists without the design bodies; without it, the full designs as before.
+    return summary === '1' || summary === 'true'
+      ? this.tileDesignsService.findSummaries(user.userId)
+      : this.tileDesignsService.findAllForUser(user.userId);
   }
 
   @Get(':id/public')

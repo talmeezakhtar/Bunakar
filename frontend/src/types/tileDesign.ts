@@ -91,6 +91,13 @@ export interface DesignOverlay {
   /** Borders only: how far the strip is drawn past each end of its footprint, so a thin
    * frame's side runs meet the top and bottom strips instead of leaving a corner gap. */
   reach?: number
+  /** Borders only: reach at one end of the footprint, overriding `reach` there: the end at the
+   * lower row/column (`reachBefore`) or the higher (`reachAfter`). A run that meets another
+   * border at one corner reaches into that corner's empty half only. */
+  reachBefore?: number
+  reachAfter?: number
+  /** A swatch id whose colour leads the motif ("custom colour"); unset = match the rug. */
+  tint?: string
 }
 
 export interface TileDesignState {

@@ -1,6 +1,7 @@
 import type { Swatch } from '../types/swatch'
 import type { TileDesignRecord } from '../types/tileDesign'
 import type { FreeformDesignRecord } from '../types/freeform'
+import type { StoredDoc } from '../studio/compress'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
@@ -22,6 +23,23 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
+/** A failed request: the server's message, its HTTP status and (when it sends one) a code. */
+export class ApiError extends Error {
+  readonly status: number
+  readonly code?: string
+  constructor(message: string, status: number, code?: string) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.code = code
+  }
+}
+
+/** True when a save was refused because the Free plan's design limit is reached. */
+export function isPlanLimit(err: unknown): err is ApiError {
+  return err instanceof ApiError && err.status === 402 && err.code === 'plan_limit'
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const headers = authHeaders()
   let res: Response
@@ -39,7 +57,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const body = await res.json().catch(() => null)
     // Nest validation errors arrive as an array of messages.
     const message = Array.isArray(body?.message) ? body.message[0] : body?.message
-    throw new Error(message ?? `Request to ${path} failed with status ${res.status}`)
+    throw new ApiError(message ?? `Request to ${path} failed with status ${res.status}`, res.status, typeof body?.code === 'string' ? body.code : undefined)
   }
   // 204 / empty body (e.g. DELETE) has no JSON to parse.
   const text = await res.text()
@@ -77,8 +95,11 @@ export const freeformDesignsApi = {
 
 export interface AuthResponse {
   accessToken: string
-  user: { id: string; email: string; name: string; role: string }
+  user: { id: string; email: string; name: string; role: string; plan?: Plan }
 }
+
+/** The account's subscription plan (older API versions don't send one: treat as Free). */
+export type Plan = 'free' | 'pro'
 
 export const authApi = {
   register: (email: string, password: string, name: string) =>
@@ -92,4 +113,38 @@ export const authApi = {
       body: JSON.stringify({ email, password }),
     }),
   me: () => request<AuthResponse['user']>('/auth/me'),
+}
+
+export const inboxApi = {
+  /** A message from the contact page. */
+  contact: (body: { name: string; email: string; topic: 'general' | 'support' | 'business' | 'press'; message: string }) =>
+    request<{ id: string }>('/contact-messages', { method: 'POST', body: JSON.stringify(body) }),
+  /** Joining the Pro waitlist, until payments are connected. */
+  requestUpgrade: (body: { name: string; email: string; use: 'home' | 'business'; billing: 'monthly' | 'yearly'; note?: string }) =>
+    request<{ id: string }>('/upgrade-requests', { method: 'POST', body: JSON.stringify(body) }),
+}
+
+/** A saved Bunakar Studio rug as the API stores it: list columns plus the encoded document. */
+export interface RugDesignRecord {
+  id: string
+  name: string
+  construction: string
+  widthFt: number
+  heightFt: number
+  doc: StoredDoc
+  thumbnail?: string | null
+  updatedAt?: string
+}
+
+type NewRugRecord = Omit<RugDesignRecord, 'id' | 'updatedAt'>
+
+export const rugDesignsApi = {
+  create: (record: NewRugRecord) => request<RugDesignRecord>('/rug-designs', { method: 'POST', body: JSON.stringify(record) }),
+  update: (id: string, record: NewRugRecord) => request<RugDesignRecord>(`/rug-designs/${id}`, { method: 'PUT', body: JSON.stringify(record) }),
+  mine: () => request<RugDesignRecord[]>('/rug-designs'),
+  /** Names and sizes only: no documents, so the list stays small. */
+  summaries: () => request<{ id: string; name: string; widthFt: number; heightFt: number; thumbnail: string | null; updatedAt: string }[]>('/rug-designs?summary=1'),
+  get: (id: string) => request<RugDesignRecord>(`/rug-designs/${id}`),
+  getPublic: (id: string) => request<RugDesignRecord>(`/rug-designs/${id}/public`),
+  remove: (id: string) => request<void>(`/rug-designs/${id}`, { method: 'DELETE' }),
 }

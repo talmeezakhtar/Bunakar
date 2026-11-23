@@ -1,0 +1,232 @@
+/* The FAQ as a card cabinet: one walnut drawer per topic, index cards standing in its tray, a
+   question along each card's top edge. Opening a card (a native <details>) lifts it out of the
+   drawer and opens its face. Cards further back sit a shade darker and a little narrower. */
+
+.fq-drawer {
+  --fq-wood: #6e4a33;
+  --fq-wood-hi: #8a5f42;
+  --fq-wood-lo: #4a3020;
+  --fq-card: #f8f3e8;
+  --fq-drop: rgb(31 20 12 / 0.38);
+  interpolate-size: allow-keywords;
+  border-radius: 14px;
+  padding: 12px 12px 0;
+  background: linear-gradient(170deg, var(--fq-wood-hi), var(--fq-wood) 40%, var(--fq-wood-lo));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.18),
+    0 1px 2px rgb(31 27 22 / 0.2),
+    0 18px 36px -20px rgb(31 27 22 / 0.55);
+}
+
+/* The tray: a recess, darkest under its back wall. */
+.fq-tray {
+  display: grid;
+  padding: 38px 12px 16px;
+  border-radius: 9px 9px 4px 4px;
+  background: linear-gradient(to bottom, #2a1b11, #3b2717 45%, #4a3020);
+  box-shadow:
+    inset 0 4px 8px -2px rgb(0 0 0 / 0.6),
+    inset 0 0 0 1px rgb(0 0 0 / 0.3),
+    0 1px 0 rgb(255 255 255 / 0.12);
+}
+
+.fq-card {
+  --shade: calc(var(--depth, 0) * 0.1);
+  position: relative;
+  margin-inline: calc(var(--depth, 0) * 6px);
+  border-radius: 4px 4px 1px 1px;
+  background: linear-gradient(rgb(60 40 20 / var(--shade)), rgb(60 40 20 / var(--shade))), var(--fq-card);
+  color: var(--color-ink);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.95),
+    0 -1px 0 rgb(0 0 0 / 0.12),
+    0 -7px 10px -5px var(--fq-drop);
+  transition:
+    transform 240ms var(--ease-gallery),
+    box-shadow 240ms var(--ease-gallery),
+    margin 240ms var(--ease-gallery);
+}
+.fq-card:first-child {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.95), 0 -1px 0 rgb(0 0 0 / 0.1);
+}
+.fq-card:not([open]):hover {
+  transform: translateY(-3px);
+}
+/* Pulled: out of the drawer, above the rest, its shadow deeper. */
+.fq-card[open] {
+  z-index: 2;
+  margin-block: 10px 10px;
+  transform: translateY(-12px);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.95),
+    0 -5px 9px -5px var(--fq-drop),
+    0 22px 30px -16px var(--fq-drop),
+    0 2px 3px rgb(0 0 0 / 0.14);
+}
+
+.fq-edge {
+  display: grid;
+  grid-template-columns: 3.2rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 12px;
+  min-height: 44px;
+  padding: 15px 18px 20px;
+  list-style: none;
+  cursor: pointer;
+  border-radius: inherit;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.fq-edge::-webkit-details-marker {
+  display: none;
+}
+.fq-edge:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -5px;
+}
+.fq-no {
+  font: 500 0.75rem/1 ui-monospace, 'SF Mono', Menlo, monospace;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
+.fq-mark {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  align-self: center;
+}
+.fq-mark::before,
+.fq-mark::after {
+  content: '';
+  position: absolute;
+  inset: 5.25px 1px auto;
+  height: 1.5px;
+  background: var(--color-muted);
+}
+.fq-mark::after {
+  transform: rotate(90deg);
+  transition: transform 240ms var(--ease-gallery);
+}
+.fq-card[open] .fq-mark::after {
+  transform: rotate(0deg);
+}
+
+/* The tab stands up from the card's top edge, at one of three stations. */
+.fq-tab {
+  position: absolute;
+  bottom: 100%;
+  left: calc(var(--tab-at, 0) * 100%);
+  height: 19px;
+  padding: 3px 11px 0;
+  border-radius: 5px 5px 0 0;
+  background: linear-gradient(rgb(60 40 20 / var(--shade)), rgb(60 40 20 / var(--shade))), var(--fq-card);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.95), 0 -4px 7px -4px var(--fq-drop);
+  font: 500 0.6875rem/16px ui-monospace, 'SF Mono', Menlo, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* The face opens with the platform's own transition where there is one; elsewhere at once. */
+.fq-card::details-content {
+  block-size: 0;
+  overflow: clip;
+  transition:
+    block-size 320ms var(--ease-gallery),
+    content-visibility 320ms allow-discrete;
+}
+.fq-card[open]::details-content {
+  block-size: auto;
+}
+.fq-face {
+  margin: -6px 18px 0;
+  padding: 14px 0 22px calc(3.2rem + 12px);
+  border-top: 3px double rgb(31 27 22 / 0.28);
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--color-ink-2);
+  /* Ruled like an index card. */
+  background: repeating-linear-gradient(to bottom, transparent 0 calc(1.7rem - 1px), rgb(31 27 22 / 0.1) calc(1.7rem - 1px) 1.7rem) 0 14px / 100% calc(100% - 36px) no-repeat;
+}
+.fq-face p {
+  max-width: 62ch;
+}
+
+/* The drawer's front: a brass label holder and a cup pull. */
+.fq-front {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  margin: 0 -12px;
+  padding: 14px 0 16px;
+  border-radius: 0 0 14px 14px;
+  background: linear-gradient(to bottom, var(--fq-wood-hi), var(--fq-wood));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2), inset 0 2px 0 rgb(0 0 0 / 0.25);
+}
+.fq-holder {
+  padding: 3px;
+  border-radius: 3px;
+  background: linear-gradient(#b8893f, #e6c47a 50%, #a07432);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.4), inset 0 1px 0 rgb(255 255 255 / 0.4);
+}
+.fq-holder span {
+  display: block;
+  min-width: 9rem;
+  padding: 3px 12px 2px;
+  border-radius: 1px;
+  background: var(--fq-card);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.25);
+  font: 500 0.6875rem/16px ui-monospace, 'SF Mono', Menlo, monospace;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--color-ink);
+}
+.fq-pull {
+  width: 96px;
+  height: 20px;
+  border-radius: 3px 3px 48px 48px / 3px 3px 20px 20px;
+  background: linear-gradient(#a07432, #e6c47a 60%, #c99a4f);
+  box-shadow: inset 0 4px 5px -2px rgb(0 0 0 / 0.55), 0 1px 0 rgb(255 255 255 / 0.2);
+}
+
+@media (max-width: 559px) {
+  .fq-drawer {
+    padding: 8px 8px 0;
+  }
+  .fq-tray {
+    padding: 34px 6px 12px;
+  }
+  .fq-card {
+    margin-inline: calc(var(--depth, 0) * 3px);
+  }
+  .fq-edge {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 14px 14px 18px;
+    font-size: 1rem;
+  }
+  .fq-no {
+    display: none;
+  }
+  .fq-face {
+    margin-inline: 14px;
+    padding-left: 0;
+  }
+  .fq-front {
+    margin-inline: -8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fq-card,
+  .fq-mark::after,
+  .fq-card::details-content {
+    transition: none;
+  }
+  .fq-card:not([open]):hover {
+    transform: none;
+  }
+}
