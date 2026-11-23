@@ -1,75 +1,129 @@
 # Buनakar: design your own handwoven rug
 
-![Bunakar: design your own handwoven rug](frontend/public/og-image.jpg)
+![The Bunakar home page: a 3D courtyard of rugs at sunset](docs/screenshots/home.webp)
 
-Bunakar is a full-stack rug design studio inspired by the GI-tagged hand-knotted carpet tradition of Mirzapur and Bhadohi. You design a rug from modular tiles or draw one freehand, see it laid out in a real room photo, and share it with a link.
+**Live:** [bunakar.vercel.app](https://bunakar.vercel.app)
 
-**Live demo:** _add the deployed URL here_
+*Bunakar* is the Hindi word for weaver. It's a rug design studio from Mirzapur, in the carpet belt of
+Uttar Pradesh, where Mirzapur and Bhadohi have knotted carpets for centuries. You design a rug the way
+weavers read one, see it as real wool and in a room at its true size, and hand any workshop a chart it
+can make.
 
-**Stack:** React 19, TypeScript, Vite, Tailwind CSS · NestJS 11, TypeORM, PostgreSQL · JWT auth · Docker · GitHub Actions
+**Stack:** React 19, TypeScript, Vite, Tailwind CSS 4, three.js (React Three Fiber) · NestJS 11,
+TypeORM, PostgreSQL · JWT auth · Playwright · GitHub Actions · Vercel (site), Render (API), Neon (database)
 
 ---
 
-## Features
+## What you can do
 
-**Tile designer.** You build a rug on a grid of 18" tiles.
-- Paint, drag-drop or replace pieces in 10 cut shapes (half, quad, diagonal, arc and others), with rotation.
-- Lay medallions and borders on top. "Frame" wraps a border around the whole rug in one click.
-- Start from 23 pattern templates in 5 colourways, or from a blank canvas.
-- A live price estimate in ₹ updates as you design.
+### Design any kind of rug, in one Studio
 
-**Freeform designer.** You draw a hand-tufted rug as vector shapes.
-- Tools: select, paint, draw (curved or straight pen) and stamp, from a library of 18 shapes.
-- 5 generators (cobblestone, mosaic, colour-field and more) give you a seeded starting layout.
-- Each surface has its own pile texture, pile height and carving (groove, ribbed, contour).
-- Exports a full-scale **tufting template** (SVG) with a yarn legend for the workshop.
+![Starting a rug: the kinds of rug, each shown as a woven sample](docs/screenshots/studio-setup.jpg)
 
-**Both designers**
-- Undo/redo with keyboard shortcuts. A prompt before you leave with unsaved changes, whether you navigate away, log out or close the tab.
-- **Room preview:** the rug is drawn into real room photos in perspective, using the room's own lighting.
-- **Download** the rug as a high-resolution PNG.
-- **Share** a read-only link anyone can open, no account needed.
-- **My Designs:** a gallery of every saved rug.
+Start by choosing how the rug is made. Each kind opens the Studio with the right tools:
 
-## Engineering highlights
+| Kind | How you design it |
+|---|---|
+| **Hand-knotted** | On a knot chart, the way weavers work: every square is one knot, at 40 to 225 knots a square inch |
+| **Flatweave** (kilim, soumak, dhurrie) | On a chart in weft rows; long kilim slits are found and can be stepped for you |
+| **Hand-tufted** and **hand-hooked** | Drawn freehand: shapes in any outline, each with its own pile (cut, loop, high-low, shag) and carved lines |
+| **Braided** | Coiled bands of three-strand braid, in rounds and ovals, each band in yarns you choose |
+| **Needlepoint** | A fine stitch chart, for Aubusson and Bessarabian styles |
+| **Tile rug** | Modular 18-inch tiles in ten cuts, with medallions and borders on top |
 
-- **One renderer, many views.** The designer canvas, thumbnails, the room preview and the PNG export all draw from the same pure SVG render functions, so they can't drift apart.
-- **Undo/redo stays cheap.** State changes go through a typed reducer, and one drag counts as one undo step. Unsaved changes are detected by comparing object references, so undoing back to the saved version counts as clean.
-- **Room preview in perspective.** A homography maps the flat rug onto the floor in each room photo, and a shading map taken from the photo carries the room's light across the rug.
-- **Security**
-  - JWT auth, bcrypt (rejecting passwords over 72 bytes instead of silently truncating them) and a login/register rate limit.
-  - Every write checks ownership. Shared links use a separate read-only route that never exposes the owner.
-  - Strict input validation with size limits on every array.
-  - A Content Security Policy and security headers on both the site and the API.
-  - CORS refuses to start wide open in production.
-- **Performance**
-  - Pages are code-split, and the below-the-fold home section loads after first paint (initial JS −18%).
-  - The hero image is WebP with high fetch priority.
-  - API responses are compressed (about 4× smaller).
-  - A composite `(userId, updatedAt)` index serves every "my designs" query.
-- **Fail loudly on misconfiguration.** The server won't start without `JWT_SECRET`, or without `CORS_ORIGIN` in production, and the frontend build won't run without `VITE_API_URL`.
+Then pick a shape (rectangle, runner, round, oval or octagon) drawn to scale on a one-foot grid, a size
+up to 60 feet, how fine it is, and the yarns to begin with. Every starting palette is previewed on the
+kind of rug you chose.
+
+### Draw it, or start from a classic or a photo
+
+![The Studio: a Kashan on a 720 by 1,080 knot chart](docs/screenshots/studio.jpg)
+
+- **Knot chart editor:** pencil, line, rectangle, ellipse, fill, eyedropper, select, copy and paste;
+  zoom, pan and undo/redo; full keyboard control.
+- **Symmetry:** mirror across, down or in quarters (design a quarter, see the whole), or 4- and 8-way for
+  round rugs and medallions.
+- **Layouts as settings, not painting:** border bands and corner styles, field patterns (stripes,
+  chevrons, diamonds, ikat), repeats, compartments, a prayer niche, a medallion with pendants, corner
+  spandrels. Borders follow the rug's shape, so a round rug gets round borders.
+- **Twenty classic styles:** Heriz, Kashan, Tabriz, Oushak, Isfahan, Baluch, Bukhara, Art Deco, a garden
+  carpet, a prayer rug, Mamluk, Kazak, Gabbeh, kilims, a Navajo eye-dazzler, ikat and more, each a whole
+  layout in its own yarns.
+- **Motif stamps** from a catalogue of medallions, borders and motifs, drawn in the rug's own yarns.
+- **Photo to chart:** upload a photo, mark its four corners to straighten it, choose 4 to 32 yarns, and
+  it becomes an editable knot chart in real catalogue yarns (colour reduction in OKLab, in a Web Worker).
+
+### See it as real wool, in 3D, and in a room
+
+| | |
+|---|---|
+| ![A study with the rug at its real size](docs/screenshots/room-study.webp) | ![A living room with the rug](docs/screenshots/room-living.webp) |
+| ![A bedroom with the rug](docs/screenshots/room-bedroom.webp) | Every design can be seen **woven**: pile, light, abrash, wash, fringe, binding or kilim ends. It can be turned **in 3D**, and walked into **ten rooms** (living rooms, bedrooms, a dining room, hallways, a study, a reading corner and a hotel lobby), each built around the rug at its real size. Download the view or share a link. |
+
+### Hand it to the weaver
+
+- **Weaver's chart** (Pro): a printable chart paged so each sheet is easy to work from, with numbered rows
+  and columns, a symbol and code for every yarn, knot counts and estimated yarn weights. A
+  quarter-symmetric rug can be printed as one quarter.
+- **Tufting template** (Pro): every shape outlined full size and labelled, with a yarn legend.
+- **Tile map** (Pro): each tile labelled with its colour code and cut, and a wool list.
+- Bunakar doesn't sell rugs. Designs are yours, to make with any weaver you choose.
+
+### And around it
+
+- **The home page** is a 3D courtyard you scroll through (with a 2D version for devices without WebGL),
+  opening once a session with "weaver" in Hindi, Urdu and English.
+- **Fabrics:** wool, silk, cotton, jute and more, each close up in 3D.
+- **Accounts:** design as a guest (kept in the browser), sign in to save, share read-only links. Free keeps
+  5 designs; Pro is unlimited.
+- **Pages:** About, Pricing, a card-index FAQ, Contact, Credits and the legal pages.
+
+## How it works
+
+**One rug document.** Every design, of every kind, is one `RugDoc`
+([`frontend/src/studio/model.ts`](frontend/src/studio/model.ts)): construction, shape, size, density,
+a palette of catalogue yarns, a layout, and layers (knot charts, freehand shapes, placed motifs, tiles),
+plus finishes. Charts are stored compressed. Designs from the earlier tile and freeform designers are
+converted to it when they open.
+
+**One composer, every view.** The layers are flattened into one indexed picture and a relief map. The chart
+editor, the woven render, the 3D rug, the room scenes, thumbnails and exports all draw from that, so they
+can't drift apart.
+
+**Rules from the craft.** Kilim slits are checked against a maximum length, braids are generated band by
+band from the outline inward, and the weaver's chart is paged and numbered the way charts are read on the
+loom (rows from the bottom).
+
+**The API** stores accounts and designs. Each design is checked against its owner on every request, input is
+validated with size limits, the Free plan's limit is enforced on the server, and a shared link opens a
+read-only copy that never exposes the owner. The database schema comes from TypeORM migrations, run when the
+API starts.
 
 ## Project structure
 
 ```
-backend/src/
-  auth/              register, login, JWT strategy, login throttle
-  swatches/          yarn/tile catalog, seeded on boot
-  tile-designs/      CRUD + public read-only share route
-  freeform-designs/  CRUD + public read-only share route
 frontend/src/
-  pages/             Home, Designer, Freeform, Room preview, My Designs, Auth
-  components/        tileDesigner/, freeform/, home/, common/
-  store/             reducers, undo/redo history
-  utils/             geometry, perspective, pricing, production template
-  data/              pattern templates, generators, room photos
+  studio/            the rug document, layouts, symmetry, weave rules, photo to chart, weaver's chart
+  components/studio/ the Studio: setup, chart editor, panels
+  three/             the courtyard, rooms, the woven rug in 3D, fabrics
+  pages/             Home, Studio, Room preview, My Designs, Fabrics, About, Pricing, FAQ, ...
+  components/        home/, freeform/, tileDesigner/, content/, common/, ui/
+  data/              yarns, motifs, styles, rooms, FAQ
+backend/src/
+  auth/              register, login, JWT, login rate limit
+  rug-designs/       Studio designs: CRUD and read-only share links
+  tile-designs/      earlier tile designs (kept, convert on open)
+  freeform-designs/  earlier freeform designs (kept, convert on open)
+  swatches/          the yarn catalogue, seeded on start
+  inbox/             contact messages and the Pro list
+  migrations/        the database schema
 ```
 
 The API is documented in [docs/api.md](docs/api.md) and the database in [docs/schema.md](docs/schema.md).
 
 ## Run it locally
 
-**With Docker (everything in one go):**
+**With Docker:**
 
 ```bash
 cp .env.example .env    # then set POSTGRES_PASSWORD and JWT_SECRET
@@ -78,31 +132,33 @@ docker compose up --build
 
 The site runs at http://localhost:5173 and the API at http://localhost:3000.
 
-**Without Docker** (needs Node 20+ and a local PostgreSQL):
+**Without Docker** (needs Node 20.19+ and PostgreSQL):
 
 ```bash
 cd backend  && cp .env.example .env && npm install && npm run start:dev
 cd frontend && cp .env.example .env && npm install && npm run dev
 ```
 
-**Checks** (the same ones CI runs on every PR):
+**Checks:**
 
 ```bash
 cd backend  && npm run lint && npm test && npm run build
-cd frontend && npm run lint && npm run build
-npx tsx src/store/freeform.check.ts    # frontend self-checks; one per *.check.ts file
+cd frontend && npm run lint && npm run check && npm run build   # check runs every *.check.ts self-check
+cd frontend && npx playwright test                              # browser tests: desktop, tablet, phone, no WebGL, reduced motion
 ```
 
 ## Deploy
 
 | Service | Settings |
 |---|---|
-| **API** (Render: **New → Blueprint** reads [`render.yaml`](render.yaml)). Manual setup: root `backend`, build `npm ci --include=dev && npm run build`, start `npm run start:prod` | `DATABASE_URL` (with `?sslmode=require`), `JWT_SECRET`, `NODE_ENV=production`, `DB_SYNCHRONIZE=true`, `CORS_ORIGIN=<site URL>` |
-| **Site** (e.g. Vercel): root `frontend` | `VITE_API_URL=<API URL>`. Security headers and SPA routing come from `vercel.json`. |
-| **Database** (e.g. Neon) | Any PostgreSQL 14+ |
+| **API** on Render (**New → Blueprint** reads [`render.yaml`](render.yaml)) | `DATABASE_URL` (with `?sslmode=require`), `JWT_SECRET`, `NODE_ENV=production`, `CORS_ORIGIN=<site URL>`. Migrations run when it starts. |
+| **Site** on Vercel, root `frontend` | `VITE_API_URL=<API URL>`. Security headers and routing come from [`vercel.json`](frontend/vercel.json). |
+| **Database** (e.g. Neon) | PostgreSQL 14+ |
 
-## Roadmap
+## Credits
 
-- TypeORM migrations instead of schema sync
-- Login token in an httpOnly cookie (CSRF-protected) instead of `localStorage`
-- A seller dashboard with orders and inventory, and real workshop pricing
+The courtyard's 3D models are by 00amza, cha, Vinnie D'Cruz and rhcreations, under CC BY 4.0; see the
+[credits page](https://bunakar.vercel.app/credits) and [`frontend/assets-src/LICENSES.md`](frontend/assets-src/LICENSES.md).
+Fonts: El Messiri and Instrument Sans (SIL Open Font License).
+
+Built by [Talmeez Akhtar](https://talmeezakhtar.github.io/).
