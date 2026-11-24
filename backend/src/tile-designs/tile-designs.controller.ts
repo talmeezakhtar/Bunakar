@@ -14,6 +14,7 @@ import { TileDesignsService } from './tile-designs.service';
 import { CreateTileDesignDto } from './dto/create-tile-design.dto';
 import { UpdateTileDesignDto } from './dto/update-tile-design.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ShareDesignDto } from '../common/designs/share.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 
@@ -55,6 +56,16 @@ export class TileDesignsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.tileDesignsService.findOne(id, user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put(':id/share')
+  share(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ShareDesignDto,
+  ) {
+    return this.tileDesignsService.setShared(id, user.userId, dto.shared);
   }
 
   @UseGuards(JwtAuthGuard)

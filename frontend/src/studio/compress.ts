@@ -15,6 +15,24 @@ async function pipe(bytes: Uint8Array, stream: CompressionStream | Decompression
   return new Uint8Array(await new Response(out).arrayBuffer())
 }
 
+/** Inflates, but stops reading past `limit` bytes: a hostile shared design can't expand into
+ * gigabytes and freeze the tab. */
+async function inflate(bytes: Uint8Array, limit: number): Promise<Uint8Array> {
+  const reader = new Blob([bytes as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate-raw')).getReader()
+  const out = new Uint8Array(limit)
+  let size = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) return out.subarray(0, size)
+    if (size + value.length > limit) {
+      await reader.cancel()
+      throw new Error('Chart is larger than its size says')
+    }
+    out.set(value, size)
+    size += value.length
+  }
+}
+
 function toBase64(bytes: Uint8Array): string {
   let s = ''
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
@@ -42,7 +60,7 @@ export async function decodeDoc(stored: StoredDoc): Promise<RugDoc> {
     stored.layers.map(async (l): Promise<Layer> => {
       if (l.kind !== 'chart') return l
       const { encoding: _encoding, ...rest } = l
-      const cells = await pipe(fromBase64(l.cells), new DecompressionStream('deflate-raw'))
+      const cells = await inflate(fromBase64(l.cells), l.cols * l.rows)
       if (cells.length !== l.cols * l.rows) throw new Error(`Chart ${l.name} is damaged: ${cells.length} cells, expected ${l.cols * l.rows}`)
       return { ...rest, cells }
     }),

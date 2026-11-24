@@ -52,7 +52,7 @@ export const CUT_TYPES: { id: CutType; label: string }[] = [
   { id: 'sixteenth', label: '1/16' },
   { id: 'diagonal', label: 'Diagonal' },
   { id: 'arc', label: 'Arc' },
-  { id: 'arc-remnant', label: 'Arc Remnant' },
+  { id: 'arc-remnant', label: 'Arc corner' },
 ]
 
 /** Sub-cell grid index for cuts that divide a tile into a grid/strip (quad, half, third,

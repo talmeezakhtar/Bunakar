@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import PageMeta from '../components/common/PageMeta'
+import { ROUTES } from '../seo/routeMeta'
 import { ContentPage } from '../components/content/ContentPage'
 import { FAQ } from '../data/faq'
 import './faqDrawer.css'
@@ -31,7 +32,7 @@ function FaqPage() {
         </p>
       }
     >
-      <PageMeta title="FAQ" description="Answers about Bunakar's Free and Pro plans, designing knotted, flatwoven, tufted, braided and tile rugs in the Studio, weaver's charts, and your account." canonicalPath="/faq" />
+      <PageMeta {...ROUTES['/faq']} canonicalPath="/faq" />
       <script type="application/ld+json">{FAQ_LD}</script>
 
       <div className="grid gap-10 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-14">

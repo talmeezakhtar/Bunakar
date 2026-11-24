@@ -20,7 +20,15 @@ export const CONTACT_TOPICS = [
   'press',
 ] as const;
 
-export class CreateContactMessageDto {
+/** The hidden honeypot field: people leave it empty, form-filling bots don't. */
+class HoneypotFields {
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  website?: string;
+}
+
+export class CreateContactMessageDto extends HoneypotFields {
   @Transform(trim)
   @IsString()
   @IsNotEmpty()
@@ -42,7 +50,7 @@ export class CreateContactMessageDto {
   message: string;
 }
 
-export class CreateUpgradeRequestDto {
+export class CreateUpgradeRequestDto extends HoneypotFields {
   @Transform(trim)
   @IsString()
   @IsNotEmpty()

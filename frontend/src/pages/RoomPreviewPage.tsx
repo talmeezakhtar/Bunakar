@@ -5,9 +5,8 @@ import type { RugCategory, TileDesignRecord } from '../types/tileDesign'
 import { formatFeetInches, formatRugSize, recordToState } from '../types/tileDesign'
 import { freeformRecordToState } from '../types/freeform'
 import type { FreeformDesignRecord } from '../types/freeform'
-import { roomPhotosForDesign } from '../data/roomPhotos'
-import RugRoomCarousel from '../components/tileDesigner/RugRoomCarousel'
-import type { RugArt } from '../components/tileDesigner/RugPhotoSlide'
+import RealisticRug from '../components/ui/RealisticRug'
+import type { RugArt } from '../types/rugArt'
 import { patternPrefix, renderTileFills } from '../components/tileDesigner/renderTiles'
 // Saved designs can carry motifs: load the motif renderer with this page.
 import '../components/tileDesigner/renderOverlays'
@@ -57,12 +56,6 @@ type PreviewDesign = {
 /** Pixels along the exported rug image's longer side. */
 const EXPORT_LONG_SIDE = 2400
 
-function parseRoomIndex(raw: string | null): number {
-  if (!raw) return 0
-  const n = Number.parseInt(raw, 10)
-  return Number.isFinite(n) && n >= 0 ? n : 0
-}
-
 function RoomPreviewPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -85,12 +78,11 @@ function RoomPreviewPage() {
   const [status, setStatus] = useState<Status>(designId || draftKind || templateParam ? 'loading' : 'not-found')
   const [design, setDesign] = useState<PreviewDesign | null>(null)
   const [exporting, setExporting] = useState(false)
-  const [slideIndexState, setSlideIndexState] = useState(() => parseRoomIndex(searchParams.get('room')))
   const rugSvgRef = useRef<SVGSVGElement>(null)
-  // Photo rooms or 3D rooms; which 3D room. Both live in the URL so shared links keep them.
-  // 3D rooms wherever the device can show them; the photo rooms are the fallback.
+  // 3D rooms wherever the device can show them; elsewhere the woven rug on its own.
+  // Which 3D room lives in the URL so shared links keep it.
   const [has3D] = useState(canShow3D)
-  const view: 'photo' | '3d' = has3D ? '3d' : 'photo'
+  const view: 'flat' | '3d' = has3D ? '3d' : 'flat'
   const viewer = useRef<RoomViewerHandle>(null)
   function setParam(key: string, value: string) {
     setSearchParams(
@@ -103,20 +95,6 @@ function RoomPreviewPage() {
     )
   }
   const exportPrefix = patternPrefix(useId())
-
-  // The room choice lives in the URL (not just component state) so it survives a "Back to
-  // Editing" -> "Continue" round-trip, a page refresh, and travels along with a shared link.
-  function handleSlideIndexChange(next: number) {
-    setSlideIndexState(next)
-    setSearchParams(
-      (prev) => {
-        const params = new URLSearchParams(prev)
-        params.set('room', String(next))
-        return params
-      },
-      { replace: true },
-    )
-  }
 
   useEffect(() => {
     if (!designId && !draftKind && !templateParam) return
@@ -236,16 +214,6 @@ function RoomPreviewPage() {
     return () => window.removeEventListener('keydown', onKey)
   })
 
-  const categoryPhotos = useMemo(
-    () => (design ? roomPhotosForDesign(design.rugCategory) : []),
-    [design],
-  )
-
-  // A `room` param carried over from a shared link or a stale bookmark can point past the end
-  // once the actual photo count is known - clamp it for rendering rather than storing a second
-  // copy of "the real index" in state (which would need an effect to keep in sync).
-  const slideIndex = categoryPhotos.length > 0 ? Math.min(Math.max(slideIndexState, 0), categoryPhotos.length - 1) : 0
-
   const exportScale = design ? EXPORT_LONG_SIDE / Math.max(design.rug.width, design.rug.height) : 1
   const exportSize = design
     ? { width: Math.round(design.rug.width * exportScale), height: Math.round(design.rug.height * exportScale) }
@@ -260,7 +228,16 @@ function RoomPreviewPage() {
       showToast({ tone: 'info', message: 'Save your rug first, then you can share a link to it.' })
       return
     }
-    const url = `${window.location.origin}/designer/preview?${isStudio ? 'kind=studio&' : isFreeform ? 'kind=freeform&' : ''}design=${designId}&room=${slideIndex}${view === '3d' ? `&room3d=${room3D.id}` : ''}`
+    // A design's link works once its owner shares it; a visitor's copy is already shared.
+    if (design?.canEdit && designId) {
+      try {
+        await (isStudio ? rugDesignsApi : isFreeform ? freeformDesignsApi : tileDesignsApi).share(designId, true)
+      } catch {
+        showToast({ tone: 'error', message: "Couldn't turn on the share link. Try again in a moment." })
+        return
+      }
+    }
+    const url = `${window.location.origin}/designer/preview?${isStudio ? 'kind=studio&' : isFreeform ? 'kind=freeform&' : ''}design=${designId}${view === '3d' ? `&room3d=${room3D.id}` : ''}`
     try {
       await navigator.clipboard.writeText(url)
       showToast({ tone: 'success', message: 'Preview link copied to clipboard.' })
@@ -531,7 +508,10 @@ function RoomPreviewPage() {
           )}
         </div>
 
-        <RugRoomCarousel photos={categoryPhotos} rug={design.rug} index={slideIndex} onIndexChange={handleSlideIndexChange} />
+        <p className="mb-4 text-sm text-muted">This browser can't show the 3D rooms, so here is the rug on its own.</p>
+        <div className="flex justify-center rounded-2xl bg-white p-6 ring-1 ring-line">
+          <RealisticRug source={design.source} longPx={900} eager alt={`${design.name}, woven`} className="max-h-[70vh] w-full" />
+        </div>
 
         {/* The plain rug, off-screen, that "Download rug image" rasterizes. */}
         <svg

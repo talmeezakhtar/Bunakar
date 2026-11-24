@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -18,12 +19,15 @@ export class InboxService {
     private readonly upgrades: Repository<UpgradeRequest>,
   ) {}
 
-  async contact(dto: CreateContactMessageDto) {
+  async contact({ website, ...dto }: CreateContactMessageDto) {
+    // A filled honeypot: answer as if saved, store nothing.
+    if (website) return { id: randomUUID() };
     const saved = await this.messages.save(this.messages.create(dto));
     return { id: saved.id };
   }
 
-  async requestUpgrade(dto: CreateUpgradeRequestDto) {
+  async requestUpgrade({ website, ...dto }: CreateUpgradeRequestDto) {
+    if (website) return { id: randomUUID() };
     const saved = await this.upgrades.save(
       this.upgrades.create({ ...dto, note: dto.note || null }),
     );

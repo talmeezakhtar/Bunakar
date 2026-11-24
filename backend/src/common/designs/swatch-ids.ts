@@ -1,3 +1,5 @@
+import { BadRequestException } from '@nestjs/common';
+
 /** Swaps every swatch id stored inside a design body. Used to turn legacy swatch uuids into
  * codes, both in the data migration and on every write (clients may still send uuids). */
 export type SwatchIdMap = (id: string) => string;
@@ -60,6 +62,24 @@ export function mapDocSwatchIds<T extends { doc?: Record<string, unknown> }>(
   const doc = design.doc as
     { palette?: WithSwatch[]; layers?: DocLayer[] } | undefined;
   if (!doc) return design;
+  // A malformed document is the client's mistake: answer 400, not a 500 from the code below.
+  const isList = (v: unknown) => v === undefined || Array.isArray(v);
+  const isMap = (v: unknown) =>
+    v === undefined ||
+    (typeof v === 'object' && v !== null && !Array.isArray(v));
+  if (
+    !isList(doc.palette) ||
+    !isList(doc.layers) ||
+    doc.layers?.some(
+      (l) =>
+        typeof l !== 'object' ||
+        l === null ||
+        !isMap(l.tiles) ||
+        !isList(l.shapes) ||
+        Object.values(l.tiles ?? {}).some((pieces) => !Array.isArray(pieces)),
+    )
+  )
+    throw new BadRequestException('The rug document is malformed.');
   const layers = doc.layers?.map((l) => {
     if (l.kind === 'tiles' && l.tiles)
       return {

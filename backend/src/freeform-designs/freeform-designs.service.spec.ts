@@ -21,6 +21,7 @@ describe('FreeformDesignsService ownership', () => {
     id: 'd1',
     name: 'Sage Garden',
     userId: 'owner-1',
+    shared: true,
   } as FreeformDesign;
   /** Matches every field in `where`, like the real repository. */
   const matches = (where: Partial<FreeformDesign>) =>
@@ -78,5 +79,16 @@ describe('FreeformDesignsService ownership', () => {
     const result = await service.findPublic('d1');
     expect(result.name).toBe('Sage Garden');
     expect(result.userId).toBeUndefined();
+  });
+
+  it('hides a design its owner has not shared', async () => {
+    design.shared = false;
+    try {
+      await expect(service.findPublic('d1')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    } finally {
+      design.shared = true;
+    }
   });
 });

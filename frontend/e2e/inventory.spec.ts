@@ -19,6 +19,8 @@ async function startRug(page: Page, construction = 'Hand-knotted') {
   await page.goto('/studio?new=1')
   await page.getByRole('radio', { name: new RegExp(`^${construction}`) }).click()
   await page.getByRole('button', { name: /Start designing/ }).click()
+  // The editor loads on its own after the setup step: wait for it before typing.
+  await expect(page.getByRole('tablist', { name: 'Inspector sections' })).toBeVisible()
 }
 
 /** Paints the knot under the chart's keyboard cursor with the current yarn. */
@@ -99,6 +101,16 @@ test('a damaged draft from an earlier designer starts a fresh rug instead', asyn
 })
 
 test.describe('studio', () => {
+  test('opens at once while the server is still waking up', async ({ page }) => {
+    await fakeApi(page)
+    // A sleeping API: the catalogue takes 30 s to answer.
+    await page.route('**/swatches', (route) => new Promise((done) => setTimeout(() => done(route.fulfill({ status: 200, body: '[]' }).catch(() => {})), 30_000)))
+    const started = Date.now()
+    await page.goto('/studio?new=1')
+    await expect(page.getByRole('button', { name: /Start designing/ })).toBeVisible({ timeout: 5_000 })
+    expect(Date.now() - started).toBeLessThan(5_000)
+  })
+
   test('a Kashan from a style: quarter-symmetric, with a quarter chart for the weaver', async ({ page }) => {
     await fakeApi(page)
     await startRug(page)
@@ -211,6 +223,20 @@ test.describe('studio', () => {
     await page.getByRole('button', { name: /Download tufting template/ }).click()
     await expect(toast(page, /tufting templates come with Pro/i)).toBeVisible()
     expect(api.posts).toHaveLength(0)
+  })
+
+  test('a drawn shape is finished with Done, no double-click or Enter needed', async ({ page }) => {
+    await fakeApi(page)
+    await startRug(page, 'Hand-tufted')
+    const tools = page.getByRole('radiogroup', { name: 'Canvas tool' })
+    await tools.getByRole('radio', { name: 'Draw' }).click()
+    const canvas = page.getByRole('application', { name: /Freeform rug/ })
+    const box = (await canvas.boundingBox())!
+    for (const [x, y] of [[0.3, 0.3], [0.7, 0.3], [0.7, 0.6], [0.3, 0.6]]) await page.mouse.click(box.x + box.width * x, box.y + box.height * y)
+    await page.getByRole('toolbar', { name: 'Shape being drawn' }).getByRole('button', { name: 'Done' }).click()
+    await expect(canvas).toHaveAccessibleName(/1 shapes?\./)
+    // Finished: back to Select, with the new shape's handles to reshape it.
+    await expect(tools.getByRole('radio', { name: 'Select' })).toBeChecked()
   })
 
   test('leaving with unsaved changes asks first', async ({ page }) => {

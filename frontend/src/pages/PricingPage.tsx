@@ -3,10 +3,12 @@ import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, Minus } from '@phosphor-icons/react'
 import PageMeta from '../components/common/PageMeta'
+import { ROUTES } from '../seo/routeMeta'
 import { ContentPage } from '../components/content/ContentPage'
 import { Field } from '../components/content/Field'
 import { useAuth } from '../hooks/useAuth'
 import { FREE_LIMITS, usePlan } from '../hooks/usePlan'
+import Honeypot, { honeypotValue } from '../components/common/Honeypot'
 import { inboxApi } from '../services/api'
 
 type Billing = 'monthly' | 'yearly'
@@ -63,11 +65,12 @@ function PricingPage() {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [error, setError] = useState('')
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    const website = honeypotValue(e)
     setStatus('sending')
     try {
-      await inboxApi.requestUpgrade({ ...form, billing, note: form.note || undefined })
+      await inboxApi.requestUpgrade({ ...form, billing, note: form.note || undefined, ...(website && { website }) })
       setStatus('sent')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
@@ -81,11 +84,7 @@ function PricingPage() {
       title="Free to design. Pro when it goes to a weaver."
       intro={<p>The whole Studio is free. Pro adds the files a workshop works from, full-size images and room for every design.</p>}
     >
-      <PageMeta
-        title="Pricing"
-        description="Bunakar is free to design with. Pro adds unlimited designs, full-size images, weaver's charts, tufting templates and tile maps."
-        canonicalPath="/pricing"
-      />
+      <PageMeta {...ROUTES['/pricing']} canonicalPath="/pricing" />
 
       <div role="radiogroup" aria-label="Billing" className="inline-flex items-center rounded-full border border-line-strong bg-surface p-1">
         {(['monthly', 'yearly'] as const).map((b) => (
@@ -199,7 +198,8 @@ function PricingPage() {
               Thanks, you&apos;re on the list. We&apos;ll email {form.email} when Pro is ready for you.
             </p>
           ) : (
-            <form onSubmit={submit} className="mt-6 grid max-w-2xl gap-5 sm:grid-cols-2">
+            <form onSubmit={submit} className="relative mt-6 grid max-w-2xl gap-5 sm:grid-cols-2">
+              <Honeypot />
               <Field label="Name">{(p) => <input {...p} required maxLength={80} autoComplete="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />}</Field>
               <Field label="Email">
                 {(p) => <input {...p} type="email" required maxLength={200} autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />}

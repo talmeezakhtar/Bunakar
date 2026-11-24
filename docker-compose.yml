@@ -8,7 +8,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: bunakar
     ports:
-      - '5432:5432'
+      # Reachable from this machine only, not the network.
+      - '127.0.0.1:5432:5432'
     volumes:
       - bunakar_postgres_data:/var/lib/postgresql/data
     healthcheck:

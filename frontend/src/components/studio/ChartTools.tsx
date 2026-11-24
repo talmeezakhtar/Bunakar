@@ -154,7 +154,7 @@ export function YarnStrip({ palette, swatchesById, yarn, onYarn }: { palette: Ya
             className={`relative h-9 w-9 rounded-lg ring-1 ring-black/10 transition-transform hover:-translate-y-0.5 ${yarn === n ? 'ring-2 ring-ink ring-offset-2 ring-offset-paper' : ''}`}
           >
             <FabricChip hex={sw?.swatchColor ?? '#cccccc'} fibre={y.fibre} pile={y.pile} size={36} className="h-full w-full rounded-lg" />
-            {n <= 9 && <span className="absolute -bottom-1 -right-1 rounded-full bg-paper px-1 text-[0.625rem] font-semibold leading-tight text-ink shadow">{n}</span>}
+            {n <= 9 && <span className="absolute -bottom-1 -right-1 rounded-full bg-paper px-1 text-[0.75rem] font-semibold leading-tight text-ink shadow">{n}</span>}
           </button>
         )
       })}

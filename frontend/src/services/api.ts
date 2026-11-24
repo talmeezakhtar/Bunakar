@@ -7,6 +7,12 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
 export const TOKEN_KEY = 'bunakar_token'
 
+/** The API sleeps when idle on its free host. A cheap request on page load starts it waking, so
+ * it's ready by the time someone saves, signs in or opens a design. */
+export function wakeApi() {
+  fetch(`${API_URL}/`, { mode: 'no-cors', cache: 'no-store' }).catch(() => {})
+}
+
 let onUnauthorized: () => void = () => {}
 /** Registered by the auth session, which owns what "logged out" means. */
 export function setUnauthorizedHandler(handler: () => void) {
@@ -48,7 +54,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
       headers: { 'Content-Type': 'application/json', ...headers },
       ...options,
     })
-  } catch {
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'TimeoutError') throw new Error('The server is taking too long to answer.')
     throw new Error("Can't reach the server. Check your connection and try again.")
   }
   if (!res.ok) {
@@ -65,7 +72,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const swatchesApi = {
-  list: () => request<Swatch[]>('/swatches'),
+  list: (options?: { signal?: AbortSignal }) => request<Swatch[]>('/swatches', options),
 }
 
 export const tileDesignsApi = {
@@ -77,6 +84,7 @@ export const tileDesignsApi = {
   get: (id: string) => request<TileDesignRecord>(`/tile-designs/${id}`),
   /** Read-only, no sign-in: what a shared preview link shows. */
   getPublic: (id: string) => request<TileDesignRecord>(`/tile-designs/${id}/public`),
+  share: (id: string, shared: boolean) => request<{ shared: boolean }>(`/tile-designs/${id}/share`, { method: 'PUT', body: JSON.stringify({ shared }) }),
   remove: (id: string) => request<void>(`/tile-designs/${id}`, { method: 'DELETE' }),
 }
 
@@ -90,6 +98,7 @@ export const freeformDesignsApi = {
   mine: () => request<FreeformDesignRecord[]>('/freeform-designs'),
   get: (id: string) => request<FreeformDesignRecord>(`/freeform-designs/${id}`),
   getPublic: (id: string) => request<FreeformDesignRecord>(`/freeform-designs/${id}/public`),
+  share: (id: string, shared: boolean) => request<{ shared: boolean }>(`/freeform-designs/${id}/share`, { method: 'PUT', body: JSON.stringify({ shared }) }),
   remove: (id: string) => request<void>(`/freeform-designs/${id}`, { method: 'DELETE' }),
 }
 
@@ -113,14 +122,18 @@ export const authApi = {
       body: JSON.stringify({ email, password }),
     }),
   me: () => request<AuthResponse['user']>('/auth/me'),
+  /** A fresh token (and profile) for a session that's still valid. */
+  refresh: () => request<AuthResponse>('/auth/refresh', { method: 'POST' }),
+  /** Ends this account's sessions on the server, on every device. */
+  logout: () => request<void>('/auth/logout', { method: 'POST' }),
 }
 
 export const inboxApi = {
   /** A message from the contact page. */
-  contact: (body: { name: string; email: string; topic: 'general' | 'support' | 'business' | 'press'; message: string }) =>
+  contact: (body: { name: string; email: string; topic: 'general' | 'support' | 'business' | 'press'; message: string; website?: string }) =>
     request<{ id: string }>('/contact-messages', { method: 'POST', body: JSON.stringify(body) }),
   /** Joining the Pro waitlist, until payments are connected. */
-  requestUpgrade: (body: { name: string; email: string; use: 'home' | 'business'; billing: 'monthly' | 'yearly'; note?: string }) =>
+  requestUpgrade: (body: { name: string; email: string; use: 'home' | 'business'; billing: 'monthly' | 'yearly'; note?: string; website?: string }) =>
     request<{ id: string }>('/upgrade-requests', { method: 'POST', body: JSON.stringify(body) }),
 }
 
@@ -146,5 +159,6 @@ export const rugDesignsApi = {
   summaries: () => request<{ id: string; name: string; widthFt: number; heightFt: number; thumbnail: string | null; updatedAt: string }[]>('/rug-designs?summary=1'),
   get: (id: string) => request<RugDesignRecord>(`/rug-designs/${id}`),
   getPublic: (id: string) => request<RugDesignRecord>(`/rug-designs/${id}/public`),
+  share: (id: string, shared: boolean) => request<{ shared: boolean }>(`/rug-designs/${id}/share`, { method: 'PUT', body: JSON.stringify({ shared }) }),
   remove: (id: string) => request<void>(`/rug-designs/${id}`, { method: 'DELETE' }),
 }

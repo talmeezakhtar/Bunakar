@@ -141,6 +141,7 @@ export function useFreeformWorkbench({
   const { state } = history
   const requirePro = useProGate()
   const { showToast } = useToast()
+  const [touch] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches)
   const [tool, setTool] = useState<FreeformTool>('select')
   const [penSmooth, setPenSmooth] = useState(true)
   const [stamp, setStamp] = useState({ libraryId: 's3-shape-10', size: 1.5, rotation: 0 })
@@ -173,8 +174,10 @@ export function useFreeformWorkbench({
   function handleAddShape(shape: FreeformShape) {
     history.commit((s) => addShape(s, shape))
     if (tool === 'pen') {
+      // A finished outline is selected with its handles showing, ready to move or reshape.
       setSelected(shape.id)
       setSelectedVertex(null)
+      setTool('select')
     }
   }
   function handleDeleteSelection() {
@@ -276,19 +279,21 @@ export function useFreeformWorkbench({
   }, [])
 
   const selectionHint = selectedShape
-    ? 'Drag to move. Drag a point to reshape; click a faint dot between points to add one.'
+    ? `Drag to move. Drag a point to reshape; ${touch ? 'tap' : 'click'} a faint dot between points to add one.`
     : liveSelected === 'ground'
       ? 'Ground selected. Pick a colour or finish on the right to change it.'
       : null
   const toolHint: Record<FreeformTool, ReactNode> = {
-    select: selectionHint ?? 'Click a shape to edit it, or click the bare ground to change the background.',
-    paint: 'Click any shape, or the ground, to give it the current colour and finish.',
-    pen: (
+    select: selectionHint ?? `${touch ? 'Tap' : 'Click'} a shape to edit it, or the bare ground to change the background.`,
+    paint: `${touch ? 'Tap' : 'Click'} any shape, or the ground, to give it the current colour and finish.`,
+    pen: touch ? (
+      'Tap to drop points. Tap the first point, or Done, to finish the shape.'
+    ) : (
       <>
-        Click to drop points. Click the first point, double-click or press <Kbd>Enter</Kbd> to finish. <Kbd>Esc</Kbd> cancels.
+        Click to drop points. Click the first point, click Done, double-click or press <Kbd>Enter</Kbd> to finish. <Kbd>Esc</Kbd> cancels.
       </>
     ),
-    stamp: 'Click the rug to place the shape. Pick the shape, size and rotation on the left.',
+    stamp: `${touch ? 'Tap' : 'Click'} the rug to place the shape. Pick the shape, size and rotation in the tools.`,
   }
 
   const tools = <FreeformToolsPanel tool={tool} penSmooth={penSmooth} onPenSmoothChange={setPenSmooth} stamp={stamp} onStampChange={setStamp} generator={generator} onGeneratorChange={setGenerator} onGenerate={handleGenerate} />

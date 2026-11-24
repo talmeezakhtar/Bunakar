@@ -14,6 +14,7 @@ import { FreeformDesignsService } from './freeform-designs.service';
 import { CreateFreeformDesignDto } from './dto/create-freeform-design.dto';
 import { UpdateFreeformDesignDto } from './dto/create-freeform-design.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ShareDesignDto } from '../common/designs/share.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 
@@ -57,6 +58,16 @@ export class FreeformDesignsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.freeformDesignsService.findOne(id, user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put(':id/share')
+  share(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ShareDesignDto,
+  ) {
+    return this.freeformDesignsService.setShared(id, user.userId, dto.shared);
   }
 
   @UseGuards(JwtAuthGuard)

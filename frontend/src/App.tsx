@@ -32,8 +32,8 @@ function PageLoading() {
   )
 }
 
-/** Designing needs an account. Signed-out visitors go to login and come back here after -
- * with the rug setup they picked (router state) intact. */
+/** Pages that need an account (My designs). Designing itself is open to guests. Signed-out
+ * visitors go to login and come back here after, with router state intact. */
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const location = useLocation()

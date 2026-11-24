@@ -118,7 +118,7 @@ export default function MotifPicker({
                 <span className={`flex w-full items-center justify-center ${kind === 'border' ? 'h-10' : 'aspect-square'}`}>
                   {previews.get(d.id) && <img src={previews.get(d.id)} alt="" loading="lazy" className="max-h-full max-w-full" />}
                 </span>
-                <span className="w-full truncate text-center text-[0.6875rem] leading-tight text-ink-2">{d.name}</span>
+                <span className="w-full truncate text-center text-[0.75rem] leading-tight text-ink-2">{d.name}</span>
               </button>
             ))}
           </div>

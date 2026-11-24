@@ -1,33 +1,11 @@
-import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from '@phosphor-icons/react'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
 import { MOCK_SWATCHES } from '../../data/mockSwatches'
-import { COLORWAYS, findTemplate } from '../../data/patternTemplates'
-import type { Colorway } from '../../data/patternTemplates'
-import { applyTemplate } from '../../data/patternTemplates'
-import { ROOM_PHOTOS } from '../../data/roomPhotos'
-import { createDefaultTileDesign } from '../../types/tileDesign'
-import RugPhotoSlide from '../tileDesigner/RugPhotoSlide'
-import type { RugArt } from '../tileDesigner/RugPhotoSlide'
-import { introDelay } from '../../utils/intro'
-import { renderTileFills } from '../tileDesigner/renderTiles'
-
-const SWATCHES_BY_ID = new Map(MOCK_SWATCHES.map((s) => [s.id, s]))
-const HERO_ROOM = ROOM_PHOTOS.find((p) => p.id === 'area-2') ?? ROOM_PHOTOS[0]
-const HERO_TEMPLATE = findTemplate('persian-medallion')
-// A 9 x 6 ft rug: 6 x 4 of the 18" tiles, the proportions of the rug space in the photo.
-const HERO_SIZE = { w: 6, h: 4 }
+import { COLORWAYS } from '../../data/patternTemplates'
 
 function swatchColor([familyId, colorName]: readonly [string, string]) {
   return MOCK_SWATCHES.find((s) => s.familyId === familyId && s.colorName === colorName)?.swatchColor ?? '#ccc'
-}
-
-function heroRug(colorway: Colorway): RugArt {
-  const state = HERO_TEMPLATE
-    ? applyTemplate(createDefaultTileDesign(HERO_SIZE.w, HERO_SIZE.h), HERO_TEMPLATE, colorway, MOCK_SWATCHES)
-    : createDefaultTileDesign(HERO_SIZE.w, HERO_SIZE.h)
-  return { width: HERO_SIZE.w, height: HERO_SIZE.h, render: (prefix) => renderTileFills(state, SWATCHES_BY_ID, prefix) }
 }
 
 /** Five colourway chips; the hero rug (photo or 3D) follows the one picked. */
@@ -99,47 +77,3 @@ export function HeroCopy({ enter }: { enter: (delay: number) => object }) {
     </>
   )
 }
-
-/** The 2D hero, for devices without WebGL (the 3D tour replaces it everywhere else). */
-function Hero() {
-  const reduce = useReducedMotion()
-  const [colorwayId, setColorwayId] = useState('kilim-red')
-  const colorway = COLORWAYS.find((c) => c.id === colorwayId) ?? COLORWAYS[0]
-  const rug = useMemo(() => heroRug(colorway), [colorway])
-
-  const enter = (delay: number) =>
-    reduce
-      ? {}
-      : {
-          initial: { opacity: 0, y: 18 },
-          animate: { opacity: 1, y: 0 },
-          transition: { duration: 0.8, delay: delay + introDelay(), ease: [0.22, 1, 0.36, 1] as const },
-        }
-
-  return (
-    <section className="relative overflow-x-clip bg-paper pt-16">
-      <div className="mx-auto grid min-h-[calc(100svh-4rem)] max-w-6xl items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14 lg:py-14">
-        <div className="max-w-xl">
-          <HeroCopy enter={enter} />
-        </div>
-        <motion.div
-          initial={reduce ? false : { opacity: 0, scale: 0.97 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <div className="overflow-hidden rounded-[var(--radius-card)] shadow-[var(--shadow-soft)] ring-1 ring-line">
-            <RugPhotoSlide photo={HERO_ROOM} rug={rug} />
-          </div>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted">
-              <span className="font-medium text-ink">{HERO_TEMPLATE?.name}</span> &middot; 9 &times; 6 ft &middot; {colorway.name}
-            </p>
-            <ColourwayPicker value={colorway.id} onChange={setColorwayId} />
-          </div>
-        </motion.div>
-      </div>
-    </section>
-  )
-}
-
-export default Hero

@@ -21,7 +21,9 @@ import LayoutPanel, { Slider } from './LayoutPanel'
 import { remapLayout, withLayout } from '../../studio/layout'
 import { catalogueStamper, motifPatch } from '../../studio/motifStamp'
 import { getMotif } from '../../data/motifs/catalogue'
-import { mergePreset } from '../../studio/presets'
+import { PRESETS, mergePreset } from '../../studio/presets'
+import ShortcutSheet from '../ui/ShortcutSheet'
+import type { ShortcutGroup } from '../ui/ShortcutSheet'
 import type { RugPreset } from '../../studio/presets'
 import { docArt, paletteRgb } from '../../studio/compose'
 import { docToDraft, draftToDoc } from '../../studio/compress'
@@ -88,7 +90,87 @@ function FlatRug({ doc, swatchesById }: { doc: RugDoc; swatchesById: Map<string,
   )
 }
 
-export default function StudioEditor({ initial, swatches, canRestoreDraft }: { initial: RugDoc; swatches: Swatch[]; canRestoreDraft: boolean }) {
+const TIP_KEY = 'bunakar_studio_tip'
+
+/** A note the first time the chart editor opens: where things are. Dismissed once, for good. */
+function FirstRunTip() {
+  const [show, setShow] = useState(() => {
+    try {
+      return !localStorage.getItem(TIP_KEY)
+    } catch {
+      return false
+    }
+  })
+  if (!show) return null
+  const close = () => {
+    setShow(false)
+    try {
+      localStorage.setItem(TIP_KEY, '1')
+    } catch {
+      // storage blocked: it just shows again next time
+    }
+  }
+  return (
+    // Clicks pass through to the chart beneath, except on the button.
+    <div role="note" className="pointer-events-none absolute bottom-3 left-3 right-3 z-10 max-w-sm rounded-2xl bg-ink/90 p-4 text-sm leading-relaxed text-paper shadow-[var(--shadow-soft)] backdrop-blur sm:right-auto">
+      <p className="font-semibold">Welcome to the Studio</p>
+      <ul className="mt-1.5 list-disc space-y-1 pl-4 text-paper/85">
+        <li>Draw with the tools beside the chart: each square is one knot.</li>
+        <li>
+          The <b>Layout</b> tab has borders, twenty classic styles and photo to chart.
+        </li>
+        <li>Save, or see it woven and in a room, from the bar at the top.</li>
+      </ul>
+      <button type="button" onClick={close} className="pointer-events-auto mt-3 min-h-10 rounded-full bg-paper px-4 font-semibold text-ink hover:bg-white">
+        Got it
+      </button>
+    </div>
+  )
+}
+
+/** The knot-chart editor's keys, for the "?" sheet. */
+const CHART_SHORTCUTS: ShortcutGroup[] = [
+  { title: 'Tools', items: TOOLS.map((t) => ({ keys: t.key.split('+'), label: t.label })) },
+  {
+    title: 'Yarns and view',
+    items: [
+      { keys: ['1–9'], label: 'Pick yarn 1 to 9' },
+      { keys: ['+'], label: 'Zoom in' },
+      { keys: ['-'], label: 'Zoom out' },
+      { keys: ['0'], label: 'Fit the rug to the screen' },
+      { keys: ['Space'], label: 'Hold and drag to move the view' },
+    ],
+  },
+  {
+    title: 'Drawing with the keyboard',
+    items: [
+      { keys: ['←', '→', '↑', '↓'], label: 'Move the cursor (Shift: 10 knots)' },
+      { keys: ['Enter'], label: 'Knot the cursor square' },
+      { keys: ['Esc'], label: 'Drop the selection, paste or stamp' },
+    ],
+  },
+  {
+    title: 'Editing',
+    items: [
+      { keys: ['Mod', 'Z'], label: 'Undo' },
+      { keys: ['Mod', 'Y'], label: 'Redo' },
+      { keys: ['?'], label: 'Show these shortcuts' },
+    ],
+  },
+]
+
+export default function StudioEditor({
+  initial,
+  swatches,
+  canRestoreDraft,
+  startWith,
+}: {
+  initial: RugDoc
+  swatches: Swatch[]
+  canRestoreDraft: boolean
+  /** A new rug's first step, picked before the Studio opened: a classic style (by id) or a photo. */
+  startWith?: { style?: string; photo?: boolean }
+}) {
   const swatchesById = useMemo(() => new Map(swatches.map((s) => [s.id, s])), [swatches])
   const history = useStudioHistory(initial)
   const { doc } = history
@@ -141,11 +223,18 @@ export default function StudioEditor({ initial, swatches, canRestoreDraft }: { i
   // A hosted editor (shapes, tiles) owns the keyboard while its drawing view shows.
   const hosted = (usesShapes || usesTiles) && view === 'chart'
 
-  // Keyboard: undo and redo.
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
+
+  // Keyboard: tools, yarns, zoom, undo and redo; "?" lists them all.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (hosted || persistence.leaveOpen || (e.target as HTMLElement)?.closest('input,textarea,select,[contenteditable=true]')) return
       const mod = e.metaKey || e.ctrlKey
+      if (!mod && !e.altKey && e.key === '?') {
+        e.preventDefault()
+        setShortcutsOpen(true)
+        return
+      }
       if (!mod && !e.altKey && view === 'chart') {
         const k = e.key
         const t = TOOLS.find((x) => (x.key.startsWith('Shift+') ? e.shiftKey && k.toUpperCase() === x.key.slice(6) : !e.shiftKey && k.toUpperCase() === x.key))
@@ -237,6 +326,22 @@ export default function StudioEditor({ initial, swatches, canRestoreDraft }: { i
       const merged = mergePreset(d, p)
       return withLayout(merged.doc, merged.layout, catalogueStamper(hexes(merged.doc)))
     })
+  // Once, as the rug opens: apply the style picked on the home page, or open the photo import.
+  const started = useRef(false)
+  useEffect(() => {
+    if (started.current || !startWith || !charted) return
+    started.current = true
+    const preset = PRESETS.find((p) => p.id === startWith.style)
+    if (preset) {
+      applyPreset(preset)
+      setTab('layout')
+    } else if (startWith.photo) {
+      setTab('layout')
+      setPhotoOpen(true)
+    }
+    // Runs once for the rug it opened with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   /** Choose a motif to stamp (or stop): it becomes the patch you click to place, in the rug's yarns. */
   function pickStamp(next: { motifId: string; sizeIn: number } | null) {
     setStamp(next)
@@ -329,8 +434,9 @@ export default function StudioEditor({ initial, swatches, canRestoreDraft }: { i
                 ))}
             </div>
           </div>
-          <div className={`relative flex min-h-[72svh] flex-1 items-center justify-center overflow-hidden lg:min-h-0 bg-[radial-gradient(90%_80%_at_50%_30%,#fbf8f2_0%,#ece5d8_70%,#e2dacb_100%)] ${view === 'chart' && charted ? '' : 'p-6'}`}>
+          <div className={`relative flex min-h-[60svh] flex-1 items-center justify-center overflow-hidden lg:min-h-0 bg-[radial-gradient(90%_80%_at_50%_30%,#fbf8f2_0%,#ece5d8_70%,#e2dacb_100%)] ${view === 'chart' && charted ? '' : 'p-6'}`}>
             {view === 'chart' && !(charted && activeChart) && !usesShapes && !usesTiles && <FlatRug doc={doc} swatchesById={swatchesById} />}
+            {view === 'chart' && charted && <FirstRunTip />}
             {usesTiles && tileLayer && (
               <TileWorkbench
                 doc={doc}
@@ -433,7 +539,7 @@ export default function StudioEditor({ initial, swatches, canRestoreDraft }: { i
 
         {/* Inspector */}
         <aside aria-label="Inspector" className="flex w-full shrink-0 flex-col border-t border-line bg-paper lg:w-[22rem] lg:border-l lg:border-t-0">
-          <div role="tablist" aria-label="Inspector sections" className={`grid border-b border-line ${tabs.length === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
+          <div role="tablist" aria-label="Inspector sections" className={`grid border-b border-line bg-paper max-lg:sticky max-lg:top-16 max-lg:z-10 ${tabs.length === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
             {tabs.map((t) => (
               <button
                 key={t}
@@ -817,6 +923,7 @@ export default function StudioEditor({ initial, swatches, canRestoreDraft }: { i
           />
         </Suspense>
       )}
+      {shortcutsOpen && <ShortcutSheet groups={CHART_SHORTCUTS} onClose={() => setShortcutsOpen(false)} />}
       {photoOpen && (
         <Suspense fallback={null}>
           <PhotoImport

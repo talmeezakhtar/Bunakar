@@ -118,6 +118,10 @@ export class TileDesign {
   @Column({ type: 'text', nullable: true })
   thumbnail: string | null;
 
+  /** Whether the read-only share link works. The owner turns it on by sharing. */
+  @Column({ default: false })
+  shared: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

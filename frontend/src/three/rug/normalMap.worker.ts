@@ -1,6 +1,8 @@
 import { heightToNormal } from './normal'
+import { photoHeight } from './photoHeight'
 
-export type NormalRequest = { id: number; height: Float32Array; w: number; h: number; strength: number }
+/** Either a height field, or a photo's pixels to derive the height from first. */
+export type NormalRequest = { id: number; w: number; h: number; strength: number } & ({ height: Float32Array } | { rgba: Uint8ClampedArray })
 export type NormalResponse = { id: number; normal: Uint8Array } | { id: number; error: string }
 
 // The app compiles against the DOM lib only, so describe the worker scope we use.
@@ -10,8 +12,9 @@ const scope = self as unknown as {
 }
 
 scope.onmessage = (e) => {
-  const { id, height, w, h, strength } = e.data
+  const { id, w, h, strength } = e.data
   try {
+    const height = 'height' in e.data ? e.data.height : photoHeight(e.data.rgba, w, h)
     const normal = heightToNormal(height, w, h, strength)
     scope.postMessage({ id, normal }, { transfer: [normal.buffer] })
   } catch (err) {

@@ -1,4 +1,5 @@
 import PageMeta from '../components/common/PageMeta'
+import { ROUTES } from '../seo/routeMeta'
 import { ContentPage, Section } from '../components/content/ContentPage'
 
 /** The 3D models in the courtyard, credited as their CC BY 4.0 licence asks. */
@@ -12,7 +13,7 @@ const MODELS = [
 function CreditsPage() {
   return (
     <ContentPage title="Credits" intro={<p>The work of others that Bunakar is built with.</p>}>
-      <PageMeta title="Credits" description="Credits for the 3D models and typefaces used on Bunakar." canonicalPath="/credits" />
+      <PageMeta {...ROUTES['/credits']} canonicalPath="/credits" />
       <Section title="3D models in the courtyard">
         <ul>
           {MODELS.map((m) => (

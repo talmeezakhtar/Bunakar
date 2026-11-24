@@ -2,6 +2,8 @@ import { Suspense, lazy, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowRight } from '@phosphor-icons/react'
 import PageMeta from '../components/common/PageMeta'
+import { ROUTES } from '../seo/routeMeta'
+import { fabricMeta } from '../seo/fabricMeta'
 import { ContentPage, Section } from '../components/content/ContentPage'
 import FabricChip from '../components/ui/FabricChip'
 import FibreFacts from '../components/ui/FibreFacts'
@@ -30,11 +32,7 @@ const COLOURS = MOCK_SWATCHES.filter((s) => !s.imageUrl && (s.familyId === 'tuft
 function FabricIndex() {
   return (
     <>
-      <PageMeta
-        title="Rug fabrics"
-        description="Wool, New Zealand wool, silk, bamboo silk, cotton and jute: how each rug fibre looks, feels and wears. See every one up close in 3D before you design."
-        canonicalPath="/fabrics"
-      />
+      <PageMeta {...ROUTES['/fabrics']} canonicalPath="/fabrics" />
       <ContentPage
         wide
         title="Fabrics"
@@ -76,7 +74,7 @@ function FabricDetail({ id }: { id: Fibre }) {
   const can3D = canShow3D()
   return (
     <>
-      <PageMeta title={`${m.name} rugs`} description={`${m.description} See ${m.name.toLowerCase()} up close in 3D, and how it feels, wears and cleans.`} canonicalPath={`/fabrics/${id}`} />
+      <PageMeta {...fabricMeta(id)} canonicalPath={`/fabrics/${id}`} />
       <ContentPage wide title={m.name} intro={m.description}>
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
           <div>

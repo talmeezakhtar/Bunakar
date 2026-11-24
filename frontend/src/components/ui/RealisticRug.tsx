@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { RugSource } from '../../three/rug/rugSource'
 
@@ -15,6 +15,9 @@ type Props = {
   style?: CSSProperties
 }
 
+/** False holds off rendering even when on screen: e.g. tour chapters that are faded out. */
+export const RugsAwake = createContext(true)
+
 /**
  * A design shown as a real woven rug (pile, light, fringe, shadow). Renders once it nears the
  * viewport; until then, and while weaving, a wool-textured placeholder holds its place. The
@@ -25,6 +28,7 @@ export default function RealisticRug({ source, longPx = 360, alt, className = ''
   const [visible, setVisible] = useState(eager)
   const [url, setUrl] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
+  const awake = useContext(RugsAwake)
 
   useEffect(() => {
     if (visible) return
@@ -39,7 +43,7 @@ export default function RealisticRug({ source, longPx = 360, alt, className = ''
   }, [visible])
 
   useEffect(() => {
-    if (!visible) return
+    if (!visible || !awake) return
     let live = true
     import('../../three/rug/realistic')
       .then(({ renderRealisticRug }) => renderRealisticRug(source, { longPx }))
@@ -48,7 +52,7 @@ export default function RealisticRug({ source, longPx = 360, alt, className = ''
     return () => {
       live = false
     }
-  }, [visible, source, longPx])
+  }, [visible, awake, source, longPx])
 
   return (
     <div ref={box} className={`relative ${fit === 'cover' ? 'overflow-hidden' : ''} ${className}`} style={style}>

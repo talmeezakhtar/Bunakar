@@ -28,4 +28,36 @@ describe('LoginThrottleGuard', () => {
     expect(guard.canActivate(ctx('a@x.com'))).toBe(true);
     now.mockRestore();
   });
+
+  const at = (path: string, ip: string, email: string) =>
+    ({
+      switchToHttp: () => ({
+        getRequest: () => ({ path, ip, body: { email } }),
+      }),
+    }) as unknown as ExecutionContext;
+
+  it('caps sign-ups from one IP even when every email is new', () => {
+    const guard = new LoginThrottleGuard();
+    for (let i = 0; i < 5; i++)
+      expect(
+        guard.canActivate(at('/auth/register', '1.2.3.4', `a${i}@x.io`)),
+      ).toBe(true);
+    expect(() =>
+      guard.canActivate(at('/auth/register', '1.2.3.4', 'a9@x.io')),
+    ).toThrow(HttpException);
+    expect(guard.canActivate(at('/auth/register', '5.6.7.8', 'b@x.io'))).toBe(
+      true,
+    );
+  });
+
+  it('caps logins to one account from many IPs', () => {
+    const guard = new LoginThrottleGuard();
+    for (let i = 0; i < 30; i++)
+      expect(
+        guard.canActivate(at('/auth/login', `10.0.0.${i}`, 'victim@x.io')),
+      ).toBe(true);
+    expect(() =>
+      guard.canActivate(at('/auth/login', '10.0.1.1', 'victim@x.io')),
+    ).toThrow(HttpException);
+  });
 });

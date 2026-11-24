@@ -1,4 +1,4 @@
-import type { RugArt } from '../../components/tileDesigner/RugPhotoSlide'
+import type { RugArt } from '../../types/rugArt'
 import { renderTileFills } from '../../components/tileDesigner/renderTiles'
 import '../../components/tileDesigner/renderOverlays'
 import { renderFreeform } from '../../components/freeform/renderFreeform'

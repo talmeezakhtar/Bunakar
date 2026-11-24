@@ -38,7 +38,8 @@ export async function fakeApi(page: Page, init: Partial<FakeApi> = {}): Promise<
     const url = new URL(req.url())
     const path = url.pathname
     const body = req.postData() ? JSON.parse(req.postData()!) : undefined
-    if (req.method() === 'POST') api.posts.push({ path, body })
+    // Session refreshes aren't writes; the tests count what changes on the server.
+    if (req.method() === 'POST' && path !== '/auth/refresh' && path !== '/auth/logout') api.posts.push({ path, body })
 
     // An empty catalogue makes the app use its bundled swatches (the same ids the tests expect).
     if (path === '/swatches') return json(route, 200, [])
@@ -46,6 +47,9 @@ export async function fakeApi(page: Page, init: Partial<FakeApi> = {}): Promise<
       api.user ??= { id: 'u1', email: body.email, name: body.name ?? 'Test Weaver', role: 'seller', plan: 'free' }
       return json(route, 201, { accessToken: token(api.user), user: api.user })
     }
+    if (path === '/auth/refresh')
+      return api.user ? json(route, 201, { accessToken: token(api.user), user: api.user }) : json(route, 401, { message: 'Unauthorized' })
+    if (path === '/auth/logout') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*' } })
     if (path === '/auth/me') return api.user ? json(route, 200, api.user) : json(route, 401, { message: 'Unauthorized' })
     if (path === '/contact-messages' || path === '/upgrade-requests') return json(route, 201, { id: `m${next++}` })
 

@@ -68,6 +68,8 @@ function FreeformCanvas({
   // The in-progress pen outline belongs to the pen tool; other tools simply don't see it.
   const draft = tool === 'pen' ? penDraft : []
   const [cursor, setCursor] = useState<Point | null>(null)
+  // Fingers need bigger targets than a mouse: handles and the "close the shape" spot grow.
+  const [coarse] = useState(() => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches)
   const { widthFt: W, heightFt: H } = state
 
   // On-screen size: fits the stage, then zooms. Handles are sized in screen pixels via this.
@@ -76,7 +78,7 @@ function FreeformCanvas({
   const widthPx = Math.max(120, baseW * zoom)
   const heightPx = widthPx / aspect
   const ftPerPx = W / widthPx
-  const handleR = 6 * ftPerPx
+  const handleR = (coarse ? 11 : 6) * ftPerPx
 
 
   const rugArt = useMemo(() => renderFreeform(state, swatchesById, prefix), [state, swatchesById, prefix])
@@ -141,12 +143,15 @@ function FreeformCanvas({
       return
     }
     if (tool === 'pen') {
-      // Clicking back on the first point closes the shape.
-      if (draft.length >= 3 && Math.hypot(p.x - draft[0].x, p.y - draft[0].y) < handleR * 2) {
+      // Clicking back on the first point closes the shape (a finger gets a wider target).
+      const closeR = e.pointerType === 'mouse' ? handleR * 2 : Math.max(handleR * 2, 24 * ftPerPx)
+      if (draft.length >= 3 && Math.hypot(p.x - draft[0].x, p.y - draft[0].y) < closeR) {
         finishPen(draft)
         return
       }
       setDraft([...draft, p])
+      // No hover on touch: show the line to where the finger is from the start.
+      setCursor(p)
       return
     }
     if (tool === 'stamp') {
@@ -190,6 +195,7 @@ function FreeformCanvas({
   const stampGhost = tool === 'stamp' && cursor ? shapePath(stampPoints(stamp.libraryId, cursor, stamp.size, stamp.rotation), true) : null
 
   return (
+    <div className="relative flex min-h-0 min-w-0 flex-1">
     <div
       className="flex flex-1 items-center justify-center overflow-auto p-8"
       style={floor ? { backgroundImage: `url(${floor})`, backgroundSize: '220px auto' } : { backgroundColor: 'var(--color-surface-2)' }}
@@ -208,7 +214,7 @@ function FreeformCanvas({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        onPointerLeave={() => setCursor(null)}
+        onPointerLeave={(e) => e.pointerType === 'mouse' && setCursor(null)}
         onDoubleClick={() => tool === 'pen' && finishPen(draft)}
         onKeyDown={handleKeyDown}
       >
@@ -274,7 +280,17 @@ function FreeformCanvas({
               strokeWidth={2 * ftPerPx}
             />
             {draft.map((p, i) => (
-              <circle key={i} cx={p.x} cy={p.y} r={i === 0 ? handleR * 1.4 : handleR * 0.8} fill={i === 0 ? '#e2a73a' : '#0b0f22'} stroke="#e2a73a" strokeWidth={1.5 * ftPerPx} />
+              <circle
+                key={i}
+                cx={p.x}
+                cy={p.y}
+                r={i === 0 ? handleR * 1.4 : handleR * 0.8}
+                fill={i === 0 ? '#e2a73a' : '#0b0f22'}
+                stroke="#e2a73a"
+                strokeWidth={1.5 * ftPerPx}
+                // The first point pulses once the shape can be closed on it.
+                className={i === 0 && draft.length >= 3 ? 'motion-safe:animate-pulse' : undefined}
+              />
             ))}
           </g>
         )}
@@ -291,6 +307,31 @@ function FreeformCanvas({
           <path d={stampGhost} fill={swatchesById.get(brush.swatchId)?.swatchColor ?? '#ccc'} fillOpacity={0.6} stroke="#e2a73a" strokeWidth={1.5 * ftPerPx} className="pointer-events-none" />
         )}
       </svg>
+    </div>
+
+      {/* While drawing: plain buttons to finish, step back or give up (no double-click or Enter needed). */}
+      {tool === 'pen' && draft.length > 0 && (
+        // On phones the canvas is taller than the screen, so the bar is pinned to the screen's bottom.
+        <div role="toolbar" aria-label="Shape being drawn" className="absolute inset-x-0 bottom-3 z-40 flex justify-center px-3 max-lg:fixed max-lg:bottom-4">
+
+          <div className="flex items-center gap-1.5 rounded-full bg-ink/90 p-1.5 text-sm text-paper shadow-[var(--shadow-soft)] backdrop-blur">
+            <button
+              type="button"
+              onClick={() => finishPen(draft)}
+              disabled={draft.length < 3}
+              className="min-h-10 rounded-full bg-accent px-4 font-semibold transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {draft.length < 3 ? `Done (${3 - draft.length} more point${draft.length === 2 ? '' : 's'})` : 'Done'}
+            </button>
+            <button type="button" onClick={() => setDraft(draft.slice(0, -1))} className="min-h-10 rounded-full px-3 hover:bg-white/10">
+              Undo point
+            </button>
+            <button type="button" onClick={() => setDraft([])} className="min-h-10 rounded-full px-3 hover:bg-white/10">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

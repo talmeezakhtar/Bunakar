@@ -16,6 +16,7 @@ export interface DesignRow {
   userId: string;
   name: string;
   thumbnail: string | null;
+  shared: boolean;
   updatedAt: Date;
 }
 
@@ -112,11 +113,12 @@ export abstract class DesignsService<T extends DesignRow, Dto extends object> {
     return design;
   }
 
-  /** Read-only view for shared preview links: anyone with the (unguessable) id may look,
-   * without learning who owns it. Editing still goes through the owner-only routes. */
+  /** Read-only view for shared preview links: anyone with the (unguessable) id of a design its
+   * owner has shared may look, without learning who owns it. Editing still goes through the
+   * owner-only routes. */
   async findPublic(id: string) {
     const design = await this.repo.findOne({
-      where: { id } as FindOptionsWhere<T>,
+      where: { id, shared: true } as FindOptionsWhere<T>,
     });
     if (!design) throw new NotFoundException(`Design ${id} not found`);
     return { ...design, userId: undefined } as Omit<T, 'userId'> & {
@@ -128,6 +130,14 @@ export abstract class DesignsService<T extends DesignRow, Dto extends object> {
     const design = await this.findOne(id, userId);
     Object.assign(design, this.canonical(dto));
     return this.repo.save(design);
+  }
+
+  /** Turns the design's share link on or off. */
+  async setShared(id: string, userId: string, shared: boolean) {
+    const design = await this.findOne(id, userId);
+    design.shared = shared;
+    await this.repo.save(design);
+    return { shared };
   }
 
   async remove(id: string, userId: string) {

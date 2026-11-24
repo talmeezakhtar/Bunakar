@@ -5,6 +5,7 @@ import { json } from 'express';
 import type { NextFunction, Request, Response } from 'express';
 import compression from 'compression';
 import { AppModule } from './app.module';
+import { writeRateLimit } from './common/write-rate-limit';
 
 async function bootstrap() {
   const production = process.env.NODE_ENV === 'production';
@@ -27,7 +28,14 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
   });
-  app.use('/rug-designs', json({ limit: '8mb' }));
+  // Before any body is read: a cap on how many writes one client can send.
+  app.use(writeRateLimit(300, 10 * 60 * 1000));
+  // Large bodies are only read for requests that claim a session; the guard then checks it.
+  // Anything else falls through to the 100 KB parser below.
+  const largeJson = json({ limit: '8mb' });
+  app.use('/rug-designs', (req: Request, res: Response, next: NextFunction) =>
+    req.headers.authorization ? largeJson(req, res, next) : next(),
+  );
   app.useBodyParser('json', { limit: '100kb' });
   app.useBodyParser('urlencoded', { limit: '100kb', extended: true });
   // Behind the host's proxy, req.ip must be the visitor's, not the proxy's - the login
@@ -53,8 +61,6 @@ async function bootstrap() {
   });
   // Design payloads are long, repetitive JSON (one entry per tile) - they shrink ~10x.
   app.use(compression());
-  // Express defaults to 100kb - too small for a large rug's tile list.
-  app.useBodyParser('json', { limit: '5mb' });
   app.enableCors(origins ? { origin: origins } : undefined);
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   await app.listen(process.env.PORT ?? 3000);
