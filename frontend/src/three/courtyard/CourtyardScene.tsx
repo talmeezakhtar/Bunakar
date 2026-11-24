@@ -354,6 +354,8 @@ export type CourtyardSceneProps = {
   touch?: boolean
   /** Pull every view back (narrow screens need more room around the subject). */
   distance?: number
+  /** False while the stage is scrolled away or the tab is hidden: the scene stops drawing. */
+  active?: boolean
 }
 
 function Ready({ onReady }: { onReady?: () => void }) {
@@ -372,6 +374,7 @@ export default function CourtyardScene({
   shift = [0, 0],
   touch = false,
   distance = 1,
+  active = true,
 }: CourtyardSceneProps) {
   // High tier: shadows and up to 1.75x pixels; low tier (or after frames drop): neither.
   const [degraded, setDegraded] = useState(false)
@@ -396,6 +399,7 @@ export default function CourtyardScene({
 
   return (
     <Canvas
+      frameloop={active ? 'always' : 'never'}
       shadows={rich}
       dpr={rich ? [1, 1.75] : 1}
       camera={{ position: STOPS[0].camera, fov: 36, near: 0.1, far: 60 }}

@@ -41,6 +41,11 @@ export class User {
   @Column({ type: 'timestamptz', nullable: true })
   planSince: Date | null;
 
+  /** Signing out bumps this; tokens carry the value they were issued with, so older ones stop
+   * working on every device. */
+  @Column({ type: 'int', default: 0 })
+  tokenVersion: number;
+
   @CreateDateColumn()
   createdAt: Date;
 }

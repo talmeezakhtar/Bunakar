@@ -1,4 +1,5 @@
 import { heightToNormal } from './normal'
+import { photoHeight } from './photoHeight'
 import type { NormalRequest, NormalResponse } from './normalMap.worker'
 
 /**
@@ -34,17 +35,20 @@ function getWorker(): Worker | null {
   return worker
 }
 
+function post(wk: Worker, msg: NormalRequest, transfer: Transferable[]): Promise<Uint8Array> {
+  return new Promise<Uint8Array>((resolve, reject) => {
+    waiting.set(msg.id, { resolve, reject })
+    wk.postMessage(msg, transfer)
+  })
+}
+
 /** Normal map off the main thread when possible (a copy of `height` goes to the worker). */
 export async function computeNormalMap(height: Float32Array, w: number, h: number, strength: number): Promise<Uint8Array> {
   const wk = getWorker()
   if (wk) {
     const copy = height.slice()
     try {
-      return await new Promise<Uint8Array>((resolve, reject) => {
-        const id = nextId++
-        waiting.set(id, { resolve, reject })
-        wk.postMessage({ id, height: copy, w, h, strength } satisfies NormalRequest, [copy.buffer])
-      })
+      return await post(wk, { id: nextId++, height: copy, w, h, strength }, [copy.buffer])
     } catch {
       // fall through to the main thread
     }
@@ -52,3 +56,16 @@ export async function computeNormalMap(height: Float32Array, w: number, h: numbe
   return heightToNormal(height, w, h, strength)
 }
 
+/** A photo's pile relief and its normal map, both off the main thread when possible. */
+export async function computePhotoNormalMap(rgba: Uint8ClampedArray, w: number, h: number, strength: number): Promise<Uint8Array> {
+  const wk = getWorker()
+  if (wk) {
+    const copy = rgba.slice()
+    try {
+      return await post(wk, { id: nextId++, rgba: copy, w, h, strength }, [copy.buffer])
+    } catch {
+      // fall through to the main thread
+    }
+  }
+  return heightToNormal(photoHeight(rgba, w, h), w, h, strength)
+}

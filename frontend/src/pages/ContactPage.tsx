@@ -2,9 +2,11 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import PageMeta from '../components/common/PageMeta'
+import { ROUTES } from '../seo/routeMeta'
 import { ContentPage } from '../components/content/ContentPage'
 import { Field } from '../components/content/Field'
 import { useAuth } from '../hooks/useAuth'
+import Honeypot, { honeypotValue } from '../components/common/Honeypot'
 import { inboxApi } from '../services/api'
 
 type Topic = 'general' | 'support' | 'business' | 'press'
@@ -22,11 +24,12 @@ function ContactPage() {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [error, setError] = useState('')
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    const website = honeypotValue(e)
     setStatus('sending')
     try {
-      await inboxApi.contact(form)
+      await inboxApi.contact({ ...form, ...(website && { website }) })
       setStatus('sent')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
@@ -44,7 +47,7 @@ function ContactPage() {
         </p>
       }
     >
-      <PageMeta title="Contact" description="Contact Bunakar about designing rugs, your account, the Pro plan, or using Bunakar in your business." canonicalPath="/contact" />
+      <PageMeta {...ROUTES['/contact']} canonicalPath="/contact" />
 
       <div className="grid gap-12 md:grid-cols-[1fr_16rem]">
         {status === 'sent' ? (
@@ -52,7 +55,8 @@ function ContactPage() {
             Thanks, {form.name.split(' ')[0] || 'there'}. Your message is with us, and we&apos;ll reply to {form.email}.
           </p>
         ) : (
-          <form onSubmit={submit} className="grid gap-5">
+          <form onSubmit={submit} className="relative grid gap-5">
+            <Honeypot />
             <div className="grid gap-5 sm:grid-cols-2">
               <Field label="Name">{(p) => <input {...p} required maxLength={80} autoComplete="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />}</Field>
               <Field label="Email">

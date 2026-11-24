@@ -1,7 +1,7 @@
 import { createElement } from 'react'
 import { flushSync } from 'react-dom'
 import { createRoot } from 'react-dom/client'
-import type { RugArt } from '../../components/tileDesigner/RugPhotoSlide'
+import type { RugArt } from '../../types/rugArt'
 
 export interface RasterSize {
   width: number

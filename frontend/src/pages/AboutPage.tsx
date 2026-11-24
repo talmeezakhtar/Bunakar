@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight } from '@phosphor-icons/react'
 import PageMeta from '../components/common/PageMeta'
+import { ROUTES } from '../seo/routeMeta'
 import { ContentPage, Section } from '../components/content/ContentPage'
 import TeamLanyardRail from '../components/ui/team-lanyard-rail'
 import type { LanyardMember } from '../components/ui/team-lanyard-rail'
@@ -43,11 +44,7 @@ function AboutPage() {
         </p>
       }
     >
-      <PageMeta
-        title="About"
-        description="Bunakar is a rug design studio from Mirzapur, in India's carpet belt: design any kind of rug, see it as real wool, and hand a weaver the chart to make it."
-        canonicalPath="/about"
-      />
+      <PageMeta {...ROUTES['/about']} canonicalPath="/about" />
 
       <div className="-mx-4 mb-14 grid grid-cols-2 gap-3 sm:mx-0 sm:grid-cols-4">
         {PHOTOS.map((p) => (

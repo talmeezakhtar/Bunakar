@@ -1,12 +1,17 @@
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { isFibre } from '../data/materials'
 import type { Fibre } from '../data/materials'
 import { useSearchParams } from 'react-router-dom'
 import PageMeta from '../components/common/PageMeta'
-import StudioEditor from '../components/studio/StudioEditor'
+import { ROUTES } from '../seo/routeMeta'
 import StudioSetup from '../components/studio/StudioSetup'
 import WeavingLoader from '../components/ui/WeavingLoader'
-import { loadSwatchCatalog } from '../components/tileDesigner/tileDesignStorage'
+
+// The editor is most of the Studio's code. The setup step doesn't need it, so it loads on its own,
+// fetched in the background while the visitor is choosing.
+const loadEditor = () => import('../components/studio/StudioEditor')
+const StudioEditor = lazy(loadEditor)
+import { loadSwatchCatalog, peekSwatchCatalog } from '../components/tileDesigner/tileDesignStorage'
 import { readDraft } from '../hooks/useDesignPersistence'
 import { useAuth } from '../hooks/useAuth'
 import { rugDesignsApi } from '../services/api'
@@ -59,7 +64,9 @@ export default function StudioPage() {
   const fresh = params.get('new') === '1'
   const { user } = useAuth()
   const { showToast } = useToast()
-  const [swatches, setSwatches] = useState<Swatch[] | null>(null)
+  // Never wait on the server to open: start with the last catalogue seen (or the bundled one, same
+  // ids), and swap in the server's only if it differs.
+  const [swatches, setSwatches] = useState<Swatch[] | null>(peekSwatchCatalog)
   // This device's draft, read once: it's what a plain visit returns to.
   const [opened, setOpened] = useState<Opened | null>(() => {
     if (designId || fresh || from) return null
@@ -71,11 +78,21 @@ export default function StudioPage() {
       return null // a damaged draft: start over
     }
   })
+  // From the home page: a classic style to apply, or the photo import to open, once the rug starts.
+  const [startWith] = useState(() => ({ style: params.get('style') ?? undefined, photo: params.get('photo') === '1' }))
   const [missing, setMissing] = useState(false)
+  const swatchesById = useMemo(() => new Map((swatches ?? []).map((s) => [s.id, s])), [swatches])
+
+  useEffect(() => {
+    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1500))
+    idle(() => void loadEditor())
+  }, [])
 
   useEffect(() => {
     let live = true
-    loadSwatchCatalog().then(({ swatches }) => live && setSwatches(swatches))
+    loadSwatchCatalog().then(({ swatches: next }) => {
+      if (live) setSwatches((prev) => (prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next))
+    })
     return () => {
       live = false
     }
@@ -120,7 +137,7 @@ export default function StudioPage() {
     }
   }, [designId, user, from])
 
-  const meta = <PageMeta title="Studio" description="Bunakar Studio: design any rug, knot by knot or freehand, and see it woven and in a room." canonicalPath="/studio" />
+  const meta = <PageMeta {...ROUTES['/studio']} canonicalPath="/studio" />
 
   if (!swatches || ((designId || from) && !opened && !missing))
     return (
@@ -149,7 +166,7 @@ export default function StudioPage() {
       <>
         {meta}
         <StudioSetup
-          swatchesById={new Map(swatches.map((s) => [s.id, s]))}
+          swatchesById={swatchesById}
           initial={CONSTRUCTIONS.some((c) => c.id === params.get('make')) ? (params.get('make') as Construction) : undefined}
           fibre={isFibre(params.get('fibre')) ? (params.get('fibre') as Fibre) : undefined}
           onStart={(doc) => setOpened({ doc, restore: false })}
@@ -160,7 +177,21 @@ export default function StudioPage() {
   return (
     <div className="pt-16">
       {meta}
-      <StudioEditor key={opened.doc.id ?? 'new'} initial={opened.doc} swatches={swatches} canRestoreDraft={opened.restore} />
+      <Suspense
+        fallback={
+          <div className="grid min-h-[80vh] place-items-center">
+            <WeavingLoader label="Opening the studio" />
+          </div>
+        }
+      >
+        <StudioEditor
+          key={opened.doc.id ?? 'new'}
+          initial={opened.doc}
+          swatches={swatches}
+          canRestoreDraft={opened.restore}
+          startWith={opened.restore ? undefined : startWith}
+        />
+      </Suspense>
     </div>
   )
 }

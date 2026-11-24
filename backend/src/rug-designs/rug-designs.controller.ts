@@ -13,6 +13,7 @@ import {
 import { RugDesignsService } from './rug-designs.service';
 import { CreateRugDesignDto, UpdateRugDesignDto } from './dto/rug-design.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ShareDesignDto } from '../common/designs/share.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 
@@ -54,6 +55,16 @@ export class RugDesignsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.rugDesignsService.findOne(id, user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put(':id/share')
+  share(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ShareDesignDto,
+  ) {
+    return this.rugDesignsService.setShared(id, user.userId, dto.shared);
   }
 
   @UseGuards(JwtAuthGuard)

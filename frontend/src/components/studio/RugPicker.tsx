@@ -32,7 +32,7 @@ export default function RugPicker<T extends string>({ label, items, value, onCha
                   on ? 'scale-100' : 'scale-[1.06] brightness-[0.6] saturate-[0.85] group-hover:brightness-[0.78]'
                 }`}
               >
-                <RealisticRug source={item.source} longPx={900} fit="cover" alt="" className="h-full w-full" />
+                <RealisticRug source={item.source} longPx={on ? 900 : 480} fit="cover" alt="" className="h-full w-full" />
               </span>
 
               {on ? (

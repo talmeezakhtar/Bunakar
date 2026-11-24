@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
+import { wakeApi } from './services/api'
 
 // index.html ships a static title/description/canonical so crawlers without JS, and the
 // pre-mount flash, see something sane. Every route's PageMeta then renders its own via React
@@ -11,10 +12,14 @@ import App from './App.tsx'
 document.querySelector('title')?.remove()
 document.querySelector('meta[name="description"]')?.remove()
 document.querySelector('link[rel="canonical"]')?.remove()
+for (const sel of ['og:title', 'og:description', 'og:url']) document.querySelector(`meta[property="${sel}"]`)?.remove()
+for (const sel of ['twitter:title', 'twitter:description']) document.querySelector(`meta[name="${sel}"]`)?.remove()
 
 // A data router so the designer can use useBlocker to warn about unsaved changes. App keeps
 // its own <Routes>, so every path is handed to it.
 const router = createBrowserRouter([{ path: '*', element: <App /> }])
+
+wakeApi()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

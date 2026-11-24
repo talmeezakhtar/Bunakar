@@ -8,8 +8,10 @@ import {
 import type { Request } from 'express';
 
 /**
- * Caps how often one client may hit an endpoint: `max` requests per `windowMs` for each key
- * (`keyOf` picks what counts as "one client"). Answers 429 with how long to wait.
+ * Caps how often one client may hit an endpoint. Each request counts against one or more buckets
+ * (`limits`: a key, the most requests allowed and the window); if any bucket is full the request
+ * is refused with 429 and how long to wait. Subclasses give either `keyOf` (one bucket of
+ * `max` per `windowMs`) or their own `limits`.
  */
 // ponytail: in-memory and per server instance - move to @nestjs/throttler with a Redis store
 // once the backend runs on more than one instance.
@@ -20,15 +22,23 @@ export abstract class RateLimitGuard implements CanActivate {
   >();
 
   constructor(
-    private readonly max: number,
-    private readonly windowMs: number,
+    private readonly max = 0,
+    private readonly windowMs = 0,
   ) {}
 
-  protected abstract keyOf(req: Request): string;
+  protected keyOf(req: Request): string {
+    void req;
+    throw new Error('RateLimitGuard needs keyOf or limits');
+  }
+
+  protected limits(
+    req: Request,
+  ): [key: string, max: number, windowMs: number][] {
+    return [[this.keyOf(req), this.max, this.windowMs]];
+  }
 
   canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest<Request>();
-    const key = this.keyOf(req);
     const now = Date.now();
 
     if (this.attempts.size > 10_000) {
@@ -36,19 +46,23 @@ export abstract class RateLimitGuard implements CanActivate {
         if (v.resetAt <= now) this.attempts.delete(k);
     }
 
-    const entry = this.attempts.get(key);
-    if (!entry || entry.resetAt <= now) {
-      this.attempts.set(key, { count: 1, resetAt: now + this.windowMs });
-      return true;
-    }
-    if (entry.count >= this.max) {
-      const minutes = Math.ceil((entry.resetAt - now) / 60_000);
+    const buckets = this.limits(req).map(([key, max, windowMs]) => {
+      let entry = this.attempts.get(key);
+      if (!entry || entry.resetAt <= now) {
+        entry = { count: 0, resetAt: now + windowMs };
+        this.attempts.set(key, entry);
+      }
+      return { entry, max };
+    });
+    const full = buckets.find((b) => b.entry.count >= b.max);
+    if (full) {
+      const minutes = Math.ceil((full.entry.resetAt - now) / 60_000);
       throw new HttpException(
         `Too many attempts. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`,
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
-    entry.count += 1;
+    for (const b of buckets) b.entry.count += 1;
     return true;
   }
 }

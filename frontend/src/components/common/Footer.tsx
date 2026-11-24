@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { canShow3D } from '../../three/canShow3D'
 import Logo from './Logo'
@@ -73,7 +73,24 @@ function PlainFooter() {
  */
 function Footer() {
   const [critters] = useState(canShow3D)
+  // The critters (three.js and a WebGL context of their own) load only as the footer nears the
+  // screen, not with the page.
+  const near = useRef<HTMLDivElement>(null)
+  const [show, setShow] = useState(false)
+  useEffect(() => {
+    const el = near.current
+    if (!critters || !el) return
+    const io = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && setShow(true), { rootMargin: '600px 0px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [critters])
   if (!critters) return <PlainFooter />
+  if (!show)
+    return (
+      <div ref={near}>
+        <PlainFooter />
+      </div>
+    )
   return (
     <Suspense fallback={<PlainFooter />}>
       <CritterFooter copyright={<FooterNote />} />

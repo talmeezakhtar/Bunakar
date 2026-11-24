@@ -83,18 +83,11 @@ loadSession()
 setUnauthorizedHandler(clearSession)
 
 if (currentUser) {
-  // Confirm the stored session with the server and pick up any profile changes.
+  // Confirm the stored session with the server, pick up profile changes, and swap in a fresh
+  // token so a session in use doesn't run out.
   authApi
-    .me()
-    .then((user) => {
-      currentUser = user
-      try {
-        localStorage.setItem(USER_KEY, JSON.stringify(user))
-      } catch {
-        // ignore
-      }
-      emit()
-    })
+    .refresh()
+    .then(saveSession)
     .catch(() => {
       // 401 is handled by the unauthorized handler; a network error keeps the local session.
     })
@@ -120,6 +113,9 @@ export function setLogoutGuard(guard: (() => Promise<boolean>) | null) {
 
 async function logout() {
   if (logoutGuard && !(await logoutGuard())) return
+  // End the session on the server too, so a copied token stops working. Signing out here
+  // still works offline.
+  authApi.logout().catch(() => {})
   clearSession()
 }
 

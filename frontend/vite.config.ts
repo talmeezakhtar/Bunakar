@@ -15,11 +15,18 @@ export default defineConfig(({ command, mode }) => {
   const siteUrl = (
     env.VITE_SITE_URL || (env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}` : '')
   ).replace(/\/$/, '')
+  // The API's origin, for a preconnect hint: the first request then skips DNS and TLS setup.
+  const apiOrigin = new URL(env.VITE_API_URL || 'http://localhost:3000').origin
   return {
+    build: { target: 'es2022' },
     plugins: [
       react(),
       tailwindcss(),
-      { name: 'site-url', transformIndexHtml: (html: string) => html.replaceAll('__SITE_URL__', siteUrl) },
+      {
+        name: 'site-url',
+        transformIndexHtml: (html: string) =>
+          html.replaceAll('__SITE_URL__', siteUrl).replaceAll('__API_ORIGIN__', apiOrigin),
+      },
     ],
   }
 })

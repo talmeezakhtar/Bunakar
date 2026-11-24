@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import PageMeta from '../components/common/PageMeta'
+import { ROUTES } from '../seo/routeMeta'
 import { Blank, ContentPage, LegalDraftNotice, Section } from '../components/content/ContentPage'
 
 export type LegalDoc = 'privacy' | 'terms' | 'cancellation'
@@ -113,18 +114,18 @@ function Cancellation() {
   )
 }
 
-const DOCS: Record<LegalDoc, { title: string; description: string; body: () => ReactNode }> = {
-  privacy: { title: 'Privacy policy', description: 'What Bunakar collects, why, who processes it, and your rights.', body: Privacy },
-  terms: { title: 'Terms of use', description: 'The terms for using Bunakar, its designers and its plans.', body: Terms },
-  cancellation: { title: 'Cancellation and refunds', description: 'How cancelling Bunakar Pro works, and refunds.', body: Cancellation },
+const DOCS: Record<LegalDoc, { body: () => ReactNode }> = {
+  privacy: { body: Privacy },
+  terms: { body: Terms },
+  cancellation: { body: Cancellation },
 }
 
 function LegalPage({ doc }: { doc: LegalDoc }) {
   const d = DOCS[doc]
   const Body = d.body
   return (
-    <ContentPage title={d.title} intro={<p>Last updated {UPDATED}.</p>}>
-      <PageMeta title={d.title} description={d.description} canonicalPath={`/${doc}`} />
+    <ContentPage title={ROUTES[`/${doc}`].title} intro={<p>Last updated {UPDATED}.</p>}>
+      <PageMeta {...ROUTES[`/${doc}`]} canonicalPath={`/${doc}`} />
       <LegalDraftNotice />
       <Body />
     </ContentPage>
